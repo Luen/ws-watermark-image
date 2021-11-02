@@ -7,8 +7,11 @@ const port = process.env.PORT || 8080;
 
 app.get('*', function(req, res) {
 
-  console.log(req.url);
-  const ORIGINAL_IMAGE = "https://wanderstories.space/" + req.url;
+  //const FILENAME = ORIGINAL_IMAGE.split('/').pop()
+  const FILENAME = req.url
+  console.log(FILENAME);
+
+  const ORIGINAL_IMAGE = "https://wanderstories.space" + FILENAME;
 
   const EXTENSION = ORIGINAL_IMAGE.split('.').pop().toLowerCase();
 
@@ -16,17 +19,15 @@ app.get('*', function(req, res) {
 
   const LOGO_MARGIN_PERCENTAGE = 5;
 
-  const FILENAME = ORIGINAL_IMAGE.split('/').pop()
-
   const ACCEPTED = [
     'jpg',
     'jpeg',
     'png'
   ]
 
-  if (ACCEPTED.indexOf(EXTENSION) >= 0) { // If an accepted fileextensinon
+  if (ACCEPTED.indexOf(EXTENSION) >= 0 && FILENAME.split('/')[1] == 'content') { // If an accepted fileextensinon
 
-    const PATH = __dirname + '/images/' + FILENAME;
+    const PATH = __dirname + FILENAME.replace('/content','');
     console.log(PATH)
 
     if (Fs.existsSync(PATH)) {
@@ -59,7 +60,7 @@ app.get('*', function(req, res) {
         ]);
       };
 
-      main().then(image => image.writeAsync('images/' + FILENAME)).then(() => {
+      main().then(image => image.writeAsync(PATH)).then(() => {
         res.sendFile(PATH)
       })
     }
