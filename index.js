@@ -16,9 +16,11 @@ app.get('*', function(req, res) {
   const FILE_EXTENSION = ORIGINAL_IMAGE.split('.').pop().toLowerCase()
 
   //const LOGO = "https://wanderstories.space/content/images/size/w1000/2016/06/Wander-Stories-logo.jpg"
-  const LOGO = "https://wanderstories.space/content/images/size/w1000/2021/11/Wanderstories-publication-logo.png"
+  //const LOGO = "https://wanderstories.space/content/images/size/w1000/2021/11/Wanderstories-publication-logo.png"
+  const LOGO = __dirname + "/Wanderstories-logo.png"
 
   const LOGO_MARGIN_PERCENTAGE = 5
+  var LOCATION = 'Center' // or 'Bottom Right'
 
   const ACCEPTED = [
     'jpg',
@@ -47,21 +49,45 @@ app.get('*', function(req, res) {
           Jimp.read(LOGO)
         ])
 
-        logo.resize(image.bitmap.width / 10, Jimp.AUTO)
+        if (LOCATION == 'Center') {
+          logo.resize(image.bitmap.width / 5, Jimp.AUTO)
 
-        const xMargin = (image.bitmap.width * LOGO_MARGIN_PERCENTAGE) / 100
-        const yMargin = (image.bitmap.width * LOGO_MARGIN_PERCENTAGE) / 100
+          const X = (image.bitmap.width / 2) - (logo.bitmap.width / 2)
+          const Y = (image.bitmap.height / 2) - (logo.bitmap.height / 2)
 
-        const X = image.bitmap.width - logo.bitmap.width - xMargin
-        const Y = image.bitmap.height - logo.bitmap.height - yMargin
+/*Jimp.BLEND_SOURCE_OVER;
+Jimp.BLEND_DESTINATION_OVER;
+Jimp.BLEND_MULTIPLY;
+Jimp.BLEND_ADD; ---
+Jimp.BLEND_SCREEN;
+Jimp.BLEND_OVERLAY;
+Jimp.BLEND_DARKEN;
+Jimp.BLEND_LIGHTEN;
+Jimp.BLEND_HARDLIGHT;
+Jimp.BLEND_DIFFERENCE;
+Jimp.BLEND_EXCLUSION;
+*/
 
-        return image.composite(logo, X, Y, [
-          {
-            mode: Jimp.BLEND_SCREEN,
-            opacitySource: 0.1,
-            opacityDest: 1
-          }
-        ])
+          return image.composite(logo, X, Y, {
+              mode: Jimp.BLEND_ADD,
+              opacitySource: 0.2,
+              opacityDest: 1
+          })
+        } else { // Bottom Right
+          logo.resize(image.bitmap.width / 10, Jimp.AUTO)
+
+          const xMargin = (image.bitmap.width * LOGO_MARGIN_PERCENTAGE) / 100
+          const yMargin = (image.bitmap.height * LOGO_MARGIN_PERCENTAGE) / 100
+
+          const X = image.bitmap.width - logo.bitmap.width - xMargin
+          const Y = image.bitmap.height - logo.bitmap.height - yMargin
+
+          return image.composite(logo, X, Y, {
+              mode: Jimp.BLEND_SCREEN,
+              opacitySource: 0.5,
+              opacityDest: 1
+          })
+        }
       }
 
       // write file to server and send file
