@@ -9,7 +9,7 @@ app.get('*', function(req, res) {
 
   //const FILENAME = ORIGINAL_IMAGE.split('/').pop()
   const FILENAME = escape(req.url)
-  console.log(FILENAME)
+  //console.log(FILENAME)
 
   const ORIGINAL_IMAGE = "https://wanderstories.space" + FILENAME
 
@@ -20,7 +20,6 @@ app.get('*', function(req, res) {
   const LOGO = __dirname + "/Wanderstories-logo.png"
 
   const JIMP_QUALITY = 60
-  const LOGO_MARGIN_PERCENTAGE = 5
 
   const ACCEPTED = [
     'jpg',
@@ -80,6 +79,9 @@ app.get('*', function(req, res) {
         // Bottom Right ///
         ///////////////////
         /*
+
+        const LOGO_MARGIN_PERCENTAGE = 5
+
         logo.resize(image.bitmap.width / 10, Jimp.AUTO)
 
         const xMargin = (image.bitmap.width * LOGO_MARGIN_PERCENTAGE) / 100

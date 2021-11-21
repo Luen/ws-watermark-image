@@ -4,9 +4,10 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "nodemon index.js"
+    "start": "node index.js",
+    "test": "nodemon index.js"
   },
-  "author": "",
+  "author": "Luen Warneke",
   "license": "ISC",
   "dependencies": {
     "express": "^4.17.1",
