@@ -5,6 +5,13 @@ const Jimp = require("jimp")
 const app = express()
 const port = process.env.PORT || 8080
 
+app.get('/', async (req, res, next) => {
+  res.writeHead(200, {
+    'Content-Type': 'text/plain'
+  })
+  res.end('Wanderstories Image Watermarker')
+})
+
 app.get('*', function(req, res) {
 
   //const FILENAME = ORIGINAL_IMAGE.split('/').pop()
