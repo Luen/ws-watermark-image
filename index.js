@@ -24,7 +24,7 @@ app.get('/', async (req, res, next) => {
 
 app.get('*', async (req, res, next) {
     //const FILENAME = ORIGINAL_IMAGE.split('/').pop()
-    const FILENAME = escape(req.url)
+    const FILENAME = encodeURIComponent(req.url)
 
     const ORIGINAL_IMAGE = 'https://wanderstories.space' + FILENAME
 
