@@ -67,12 +67,18 @@ app.get('*', async (req, res, next) => {
         const imagePath = path.normalize(path.join(__dirname, ...encodedSegments));
         const relativePath = path.relative(__dirname, imagePath);
 
+        // Validate the relativePath to prevent Path Traversal
         if (relativePath.startsWith('..') || path.isAbsolute(relativePath)) {
             return res.status(400).send('Invalid path');
         }
 
-        if (fs.existsSync(imagePath)) {
+        // Changed from existsSync to promises to avoid deprecation warnings
+        const directoryPath = path.dirname(imagePath);
+        try {
+            await fs.promises.access(imagePath);
             return res.sendFile(imagePath);
+        } catch (err) {
+            // File doesn't exist, continue processing
         }
 
         const imageResponse = await axios.get(originalImageUrl.href, { responseType: 'arraybuffer' });
@@ -95,9 +101,9 @@ app.get('*', async (req, res, next) => {
             .jpeg({ quality: 60 })
             .toBuffer();
 
-        const directoryPath = path.dirname(imagePath);
-        fs.mkdirSync(directoryPath, { recursive: true });
-        fs.writeFileSync(imagePath, outputBuffer);
+        // Safely create directory and write file
+        await fs.promises.mkdir(directoryPath, { recursive: true });
+        await fs.promises.writeFile(imagePath, outputBuffer);
 
         return res.sendFile(imagePath);
 
