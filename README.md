@@ -1,5 +1,5 @@
 # WS watermark image proxy
-Watermark Wanderstories images using a proxy (express & jimp).
+Watermark Wanderstories images using a proxy (express & sharp).
 
 # Install
 ```
