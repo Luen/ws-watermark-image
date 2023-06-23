@@ -1,129 +1,113 @@
-const express = require('express')
-const rateLimit = require('express-rate-limit')
-const Fs = require('fs')
-const Jimp = require('jimp')
+const express = require('express');
+const rateLimit = require('express-rate-limit');
+const axios = require('axios');
+const fs = require('fs');
+const path = require('path');
+const sharp = require('sharp');
+const helmet = require('helmet');
+const compression = require('compression');
+const cors = require('cors');
+const csrf = require('csurf');
+const cookieParser = require('cookie-parser');
 
-const app = express()
-const port = process.env.PORT || 8080
+const app = express();
+
+// Use necessary middleware
+app.use(express.urlencoded({ extended: false }));
+app.use(express.json());
+app.use(cookieParser());
+app.use(csrf({ cookie: true })); // Implement CSRF protection
+app.use(helmet()); // Apply additional security headers
+app.use(compression()); // Compress all routes
+app.use(cors()); // Enable CORS for all routes
+
+const port = process.env.PORT || 8080;
 
 const limiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 200, // Limit each IP to 200 requests per `window` (here, per 15 minutes)
-    standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
-    legacyHeaders: false, // Disable the `X-RateLimit-*` headers
-})
-// Apply the rate limiting middleware to all requests
-app.use(limiter)
+    windowMs: 15 * 60 * 1000,
+    max: 200,
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+
+app.use(limiter);
 
 app.get('/', async (req, res, next) => {
     res.writeHead(200, {
         'Content-Type': 'text/plain',
-    })
-    res.end('Wanderstories Image Watermarker')
-})
+    });
+    res.end('Wanderstories Image Watermarker');
+});
 
-app.get('*', async (req, res, next) {
-    //const FILENAME = ORIGINAL_IMAGE.split('/').pop()
-    const FILENAME = req.url
-
-    const ORIGINAL_IMAGE = 'https://wanderstories.space' + FILENAME
-
-    const FILE_EXTENSION = ORIGINAL_IMAGE.split('.').pop().toLowerCase()
-
-    //const LOGO = "https://wanderstories.space/content/images/size/w1000/2016/06/Wander-Stories-logo.jpg"
-    //const LOGO = "https://wanderstories.space/content/images/size/w1000/2021/11/Wanderstories-publication-logo.png"
-    const LOGO = __dirname + '/Wanderstories-logo.png'
-
-    const JIMP_QUALITY = 60
-
-    const ACCEPTED = ['jpg', 'jpeg', 'png']
-
-    // If an accepted file extension && path is /content/images
-    if (
-        ACCEPTED.indexOf(FILE_EXTENSION) >= 0 &&
-        FILENAME.split('/')[1] == 'content' &&
-        FILENAME.split('/')[2] == 'images'
-    ) {
-        // Store on server in images folder (not content/images)
-        const PATH = __dirname + FILENAME.replace('/content', '')
-        console.log(PATH)
-
-        // Check if file exists on server
-        if (Fs.existsSync(PATH)) {
-            // file already exists, send file
-            //res.send('File Exists ' + FILENAME + '!')
-            res.sendFile(PATH)
-        } else {
-            // file does not exist, generate watermarked image
-
-            const main = async () => {
-                const [image, logo] = await Promise.all([
-                    Jimp.read(ORIGINAL_IMAGE),
-                    Jimp.read(LOGO),
-                ])
-
-                ///////////////////
-                ///// Center //////
-                ///////////////////
-                logo.resize(image.bitmap.width / 5, Jimp.AUTO)
-
-                const X = image.bitmap.width / 2 - logo.bitmap.width / 2
-                const Y = image.bitmap.height / 2 - logo.bitmap.height / 2
-
-                /* // BLEND MODES
-          Jimp.BLEND_SOURCE_OVER;
-          Jimp.BLEND_DESTINATION_OVER;
-          Jimp.BLEND_MULTIPLY;
-          Jimp.BLEND_ADD; ---
-          Jimp.BLEND_SCREEN;
-          Jimp.BLEND_OVERLAY;
-          Jimp.BLEND_DARKEN;
-          Jimp.BLEND_LIGHTEN;
-          Jimp.BLEND_HARDLIGHT;
-          Jimp.BLEND_DIFFERENCE;
-          Jimp.BLEND_EXCLUSION;
-          */
-
-                return image.composite(logo, X, Y, {
-                    mode: Jimp.BLEND_ADD,
-                    opacitySource: 0.2,
-                    opacityDest: 1,
-                })
-                ///////////////////
-                // Bottom Right ///
-                ///////////////////
-                /*
-
-        const LOGO_MARGIN_PERCENTAGE = 5
-
-        logo.resize(image.bitmap.width / 10, Jimp.AUTO)
-
-        const xMargin = (image.bitmap.width * LOGO_MARGIN_PERCENTAGE) / 100
-        const yMargin = (image.bitmap.height * LOGO_MARGIN_PERCENTAGE) / 100
-
-        const X = image.bitmap.width - logo.bitmap.width - xMargin
-        const Y = image.bitmap.height - logo.bitmap.height - yMargin
-
-        return image.composite(logo, X, Y, {
-            mode: Jimp.BLEND_SCREEN,
-            opacitySource: 0.5,
-            opacityDest: 1
-        })
-        */
-            }
-
-            // write file to server and send file
-            main()
-                .then((image) => image.quality(JIMP_QUALITY).writeAsync(PATH))
-                .then(() => {
-                    res.sendFile(PATH)
-                })
+app.get('*', async (req, res, next) => {
+    try {
+        const segments = req.url.split('/').filter(segment => segment);
+        
+        if (segments.length < 3 || segments[0] !== 'content' || segments[1] !== 'images') {
+            return res.status(404).send('Not Found');
         }
-    } else {
-        // not acceptable fileformat
-        res.status(404).send('Not Found !!!')
-    }
-})
 
-app.listen(port)
-console.log('Listening on port', port)
+        const encodedSegments = segments.map(segment => encodeURIComponent(segment));
+        const encodedPath = encodedSegments.join('/');
+        
+        const originalImageUrl = new URL(`https://wanderstories.space/${encodedPath}`);
+        
+        if (originalImageUrl.origin !== 'https://wanderstories.space') {
+            return res.status(400).send('Invalid URL');
+        }
+
+        const fileExtension = originalImageUrl.pathname.split('.').pop().toLowerCase();
+        const accepted = ['jpg', 'jpeg', 'png'];
+        
+        if (!accepted.includes(fileExtension)) {
+            return res.status(400).send('Invalid file type');
+        }
+
+        const logoPath = path.join(__dirname, 'Wanderstories-logo.png');
+        const imagePath = path.normalize(path.join(__dirname, ...encodedSegments));
+        const relativePath = path.relative(__dirname, imagePath);
+
+        if (relativePath.startsWith('..') || path.isAbsolute(relativePath)) {
+            return res.status(400).send('Invalid path');
+        }
+
+        if (fs.existsSync(imagePath)) {
+            return res.sendFile(imagePath);
+        }
+
+        const imageResponse = await axios.get(originalImageUrl.href, { responseType: 'arraybuffer' });
+
+        const imageBuffer = imageResponse.data;
+        const metadata = await sharp(imageBuffer).metadata();
+
+        const resizedLogoBuffer = await sharp(logoPath)
+            .resize({ width: Math.round(metadata.width / 5) })
+            .toBuffer();
+
+        const outputBuffer = await sharp(imageBuffer)
+            .composite([
+                {
+                    input: resizedLogoBuffer,
+                    gravity: 'center',
+                    blend: 'overlay',
+                },
+            ])
+            .jpeg({ quality: 60 })
+            .toBuffer();
+
+        const directoryPath = path.dirname(imagePath);
+        fs.mkdirSync(directoryPath, { recursive: true });
+        fs.writeFileSync(imagePath, outputBuffer);
+
+        return res.sendFile(imagePath);
+
+    } catch (err) {
+        console.error(err);
+        return res.status(500).send('Server Error');
+    }
+});
+
+
+app.listen(port, () => {
+    console.log(`Listening on port ${port}`);
+});

@@ -1,5 +1,3 @@
-/images
-
 # Logs
 logs
 *.log
@@ -104,3 +102,7 @@ dist
 
 # TernJS port file
 .tern-port
+
+# remove image directory
+/content
+/images
