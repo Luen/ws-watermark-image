@@ -10,6 +10,7 @@ const cors = require('cors');
 const csrf = require('csurf');
 const cookieParser = require('cookie-parser');
 
+const port = process.env.PORT || 8080;
 const app = express();
 
 // Use necessary middleware
@@ -20,17 +21,14 @@ app.use(csrf({ cookie: true })); // Implement CSRF protection
 app.use(helmet()); // Apply additional security headers
 app.use(compression()); // Compress all routes
 app.use(cors()); // Enable CORS for all routes
-
-const port = process.env.PORT || 8080;
-
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000,
     max: 200,
     standardHeaders: true,
     legacyHeaders: false,
 });
-
 app.use(limiter);
+
 
 app.get('/', async (req, res, next) => {
     res.writeHead(200, {
