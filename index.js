@@ -11,6 +11,10 @@ const csrf = require('csurf');
 const cookieParser = require('cookie-parser');
 
 const port = process.env.PORT || 8080;
+
+const accepted = ['jpg', 'jpeg', 'png'];
+const logoPath = path.join(__dirname, 'Wanderstories-logo.png');
+
 const app = express();
 
 // Use necessary middleware
@@ -29,7 +33,6 @@ const limiter = rateLimit({
 });
 app.use(limiter);
 
-
 app.get('/', async (req, res, next) => {
     res.writeHead(200, {
         'Content-Type': 'text/plain',
@@ -43,19 +46,18 @@ app.get('/content/images/*', async (req, res, next) => { // Only allow this spec
 
         // Very strict validation to only allow certain characters in the path
         if (!/^[\w\-\/\.]+$/.test(relativePath)) {
-            return res.status(400).send('Invalid path');
+            // invalid path
+            return res.status(400).send('Invalid request');
         }
 
         const fileExtension = path.extname(relativePath).substring(1).toLowerCase();
-        const accepted = ['jpg', 'jpeg', 'png'];
 
         if (!accepted.includes(fileExtension)) {
-            return res.status(400).send('Invalid file type');
+            // invalid file type
+            return res.status(400).send('Invalid request');
         }
 
         const imagePath = path.join(__dirname, 'content', 'images', relativePath);
-
-        const logoPath = path.join(__dirname, 'Wanderstories-logo.png');
 
         try {
             await fs.promises.access(imagePath);
