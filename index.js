@@ -40,6 +40,10 @@ app.get('/', async (req, res, next) => {
     res.end('Wanderstories Image Watermarker');
 });
 
+app.get('/favicon.ico', async (req, res, next) => {
+    res.sendFile(path.join(__dirname, 'favicon.ico'));
+})
+
 app.get('/content/images/*', async (req, res, next) => { // Only allow this specific pattern
     try {
         const relativePath = req.params[0]; // Get the relative path after /content/images/
@@ -102,5 +106,5 @@ app.get('/content/images/*', async (req, res, next) => { // Only allow this spec
 });
 
 app.listen(port, () => {
-    console.log(`Listening on port ${port}`);
+    console.log(`Listening on http://localhost:${port}`);
 });
