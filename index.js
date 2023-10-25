@@ -62,6 +62,7 @@ app.get('/content/images/*', async (req, res, next) => { // Only allow this spec
         // Very strict validation to only allow certain characters in the path
         if (!/^[\w\-\/\.]+$/.test(relativePath)) {
             // invalid path
+            console.error('Invalid path');
             return res.status(400).send('Invalid request');
         }
 
@@ -69,6 +70,7 @@ app.get('/content/images/*', async (req, res, next) => { // Only allow this spec
 
         if (!accepted.includes(fileExtension)) {
             // invalid file type
+            console.error('Invalid file type');
             return res.status(400).send('Invalid request');
         }
 
@@ -92,7 +94,8 @@ app.get('/content/images/*', async (req, res, next) => { // Only allow this spec
 
         // Validate that the logo resizing operation is successful before compositing
         if (logoMetadata.width > imageMetadata.width || logoMetadata.height > imageMetadata.height) {
-            console.error('Logo dimensions are larger than base image.');
+            console.error('Logo dimensions are larger than base image');
+            return res.status(400).send('Invalid request');
           }          
 
         const resizedLogoBuffer = await sharp(logoPath)
@@ -116,7 +119,7 @@ app.get('/content/images/*', async (req, res, next) => { // Only allow this spec
         await fs.promises.writeFile(imagePath, outputBuffer);
 
         // Set additional CORS headers
-        res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+        res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin'); //same-site
         res.setHeader('Cross-Origin-Embedder-Policy', 'unsafe-none');
 
         return res.sendFile(imagePath);
