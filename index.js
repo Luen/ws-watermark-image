@@ -24,7 +24,11 @@ app.use(cookieParser());
 app.use(csrf({ cookie: true })); // Implement CSRF protection
 app.use(helmet()); // Apply additional security headers
 app.use(compression()); // Compress all routes
-app.use(cors()); // Enable CORS for all routes
+const corsOptions = {
+    origin: 'https://wanderstories.space',  // Application's origin
+    optionsSuccessStatus: 204
+  };
+app.use(cors(corsOptions)); // Enable CORS for all routes
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000,
     max: 200,
