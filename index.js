@@ -16,6 +16,7 @@ const accepted = ['jpg', 'jpeg', 'png'];
 const logoPath = path.join(__dirname, 'Wanderstories-logo.png');
 
 const app = express();
+app.set('trust proxy', 1); // trust first proxy
 
 // Use necessary middleware
 app.use(express.urlencoded({ extended: false }));
