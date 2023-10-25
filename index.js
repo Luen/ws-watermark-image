@@ -32,7 +32,8 @@ app.use(
 app.use(compression()); // Compress all routes
 const corsOptions = {
     origin: 'https://wanderstories.space',  // Application's origin
-    optionsSuccessStatus: 204
+    optionsSuccessStatus: 204,
+    credentials: true  // Enable credentials (cookies, etc.)
   };
 app.use(cors(corsOptions)); // Enable CORS for all routes
 const limiter = rateLimit({
