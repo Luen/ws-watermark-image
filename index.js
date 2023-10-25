@@ -106,6 +106,10 @@ app.get('/content/images/*', async (req, res, next) => { // Only allow this spec
         await fs.promises.mkdir(directoryPath, { recursive: true });
         await fs.promises.writeFile(imagePath, outputBuffer);
 
+        // Set additional CORS headers
+        res.setHeader('Cross-Origin-Resource-Policy', 'same-site');
+        res.setHeader('Cross-Origin-Embedder-Policy', 'unsafe-none');
+
         return res.sendFile(imagePath);
 
     } catch (err) {
