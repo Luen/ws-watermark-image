@@ -22,7 +22,12 @@ app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
 app.use(cookieParser());
 app.use(csrf({ cookie: true })); // Implement CSRF protection
-app.use(helmet()); // Apply additional security headers
+app.use(
+    helmet({
+      contentSecurityPolicy: false, // or configure according to your needs
+      xContentTypeOptions: false, // disable it here
+    })
+  ); // Apply additional security headers
 app.use(compression()); // Compress all routes
 const corsOptions = {
     origin: 'https://wanderstories.space',  // Application's origin
