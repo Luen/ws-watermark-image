@@ -85,10 +85,17 @@ app.get('/content/images/*', async (req, res, next) => { // Only allow this spec
         const imageResponse = await axios.get(originalImageUrl.href, { responseType: 'arraybuffer' });
 
         const imageBuffer = imageResponse.data;
-        const metadata = await sharp(imageBuffer).metadata();
+        const imageMetadata = await sharp(imageBuffer).metadata();
+
+        const logoMetadata = await sharp(logoPath).metadata(); 
+
+        // Validate that the logo resizing operation is successful before compositing
+        if (logoMetadata.width > imageMetadata.width || logoMetadata.height > imageMetadata.height) {
+            console.error('Logo dimensions are larger than base image.');
+          }          
 
         const resizedLogoBuffer = await sharp(logoPath)
-            .resize({ width: Math.round(metadata.width / 5) })
+            .resize({ width: Math.round(imageMetadata.width / 5) })
             .toBuffer();
 
         const outputBuffer = await sharp(imageBuffer)
