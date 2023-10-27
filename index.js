@@ -91,24 +91,30 @@ app.get('/content/images/*', async (req, res, next) => { // Only allow this spec
         const imageMetadata = await sharp(imageBuffer).metadata();
 
         const logoMetadata = await sharp(logoPath).metadata(); 
+        let compositeLogoBuffer;
 
         // Validate that the logo resizing operation is successful before compositing
         if (logoMetadata.width > imageMetadata.width || logoMetadata.height > imageMetadata.height) {
-            console.error('Logo dimensions are larger than base image');
-            //return res.status(400).send('Invalid request');
-            //return res.redirect(originalImageUrl.href);
-            // Send original image buffer
-            res.writeHead(200, {
-                'Content-Type': 'image/jpeg', // or whatever the original image type is
-                'Content-Length': imageBuffer.length
-            });
-            return res.end(imageBuffer, 'binary');
-          }          
+            // console.log('Logo dimensions are larger than base image');
+            // Resize the logo to fit within the base image
+            compositeLogoBuffer = await sharp(logoPath)
+            .resize({
+                width: imageMetadata.width,
+                height: imageMetadata.height,
+                fit: 'inside' // Preserve aspect ratio
+            })
+            .toBuffer();
+        } else {
+            // If the logo is already smaller than the base image, use it as is
+            compositeLogoBuffer = await sharp(logoPath).toBuffer();
+        }       
 
-        const resizedLogoBuffer = await sharp(logoPath)
+        // Resize the logo to 1/5 of the base image width for compositing
+        const resizedLogoBuffer = await sharp(compositeLogoBuffer)
             .resize({ width: Math.round(imageMetadata.width / 5) })
             .toBuffer();
 
+        // Composite the resized logo onto the base image
         const outputBuffer = await sharp(imageBuffer)
             .composite([
                 {
@@ -119,6 +125,7 @@ app.get('/content/images/*', async (req, res, next) => { // Only allow this spec
             ])
             .jpeg({ quality: 60 })
             .toBuffer();
+
 
         // Safely create directory and write file
         const directoryPath = path.dirname(imagePath);
