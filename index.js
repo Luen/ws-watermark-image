@@ -32,6 +32,7 @@ app.use(
 app.use(compression()); // Compress all routes
 const corsOptions = {
     origin: function (origin, callback) {
+      console.log('Origin:', origin);  // Log the origin
       callback(null, true)
     },
     optionsSuccessStatus: 204,
