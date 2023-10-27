@@ -25,10 +25,11 @@ app.use(cookieParser());
 app.use(csrf({ cookie: true })); // Implement CSRF protection
 app.use(
     helmet({
-      contentSecurityPolicy: false, // or configure according to your needs
-      xContentTypeOptions: false, // disable it here
-    })
-  ); // Apply additional security headers
+        contentSecurityPolicy: false,
+        crossOriginOpenerPolicy: { policy: 'unsafe-none' },
+        crossOriginResourcePolicy: { policy: 'cross-origin' },
+      }) 
+); // Apply additional security headers
 app.use(compression()); // Compress all routes
 const corsOptions = {
     origin: function (origin, callback) {
