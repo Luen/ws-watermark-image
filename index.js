@@ -95,7 +95,14 @@ app.get('/content/images/*', async (req, res, next) => { // Only allow this spec
         // Validate that the logo resizing operation is successful before compositing
         if (logoMetadata.width > imageMetadata.width || logoMetadata.height > imageMetadata.height) {
             console.error('Logo dimensions are larger than base image');
-            return res.status(400).send('Invalid request');
+            //return res.status(400).send('Invalid request');
+            //return res.redirect(originalImageUrl.href);
+            // Send original image buffer
+            res.writeHead(200, {
+                'Content-Type': 'image/jpeg', // or whatever the original image type is
+                'Content-Length': imageBuffer.length
+            });
+            return res.end(imageBuffer, 'binary');
           }          
 
         const resizedLogoBuffer = await sharp(logoPath)
