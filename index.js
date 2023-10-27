@@ -31,10 +31,12 @@ app.use(
   ); // Apply additional security headers
 app.use(compression()); // Compress all routes
 const corsOptions = {
-    origin: 'https://wanderstories.space',  // Application's origin
+    origin: function (origin, callback) {
+      callback(null, true)
+    },
     optionsSuccessStatus: 204,
     credentials: true  // Enable credentials (cookies, etc.)
-  };
+};
 app.use(cors(corsOptions)); // Enable CORS for all routes
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000,
@@ -131,10 +133,6 @@ app.get('/content/images/*', async (req, res, next) => { // Only allow this spec
         const directoryPath = path.dirname(imagePath);
         await fs.promises.mkdir(directoryPath, { recursive: true });
         await fs.promises.writeFile(imagePath, outputBuffer);
-
-        // Set additional CORS headers
-        res.setHeader('Cross-Origin-Resource-Policy', 'same-site'); // cross-origin
-        res.setHeader('Cross-Origin-Embedder-Policy', 'unsafe-none');
 
         return res.sendFile(imagePath);
 
