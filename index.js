@@ -86,11 +86,24 @@ app.get('/content/images/*', async (req, res, next) => { // Only allow this spec
             // File doesn't exist (this is expected), continue processing
         }
 
-        const originalImageUrl = new URL(`https://wanderstories.space/content/images/${encodeURIComponent(relativePath)}`);
+        // Split the path by slashes
+        const pathSegments = relativePath.split('/');
+        // Encode each segment separately
+        const encodedSegments = pathSegments.map(segment => encodeURIComponent(segment));
+        // Join them back together with slashes
+        const encodedPath = encodedSegments.join('/');
+        // Construct the URL
+        const originalImageUrl = new URL(`https://wanderstories.space/content/images/${encodedPath}`);
 
-        const imageResponse = await axios.get(originalImageUrl.href, { responseType: 'arraybuffer' });
+        let imageBuffer; 
+        try {
+            const imageResponse = await axios.get(originalImageUrl.href, { responseType: 'arraybuffer' });
+            imageBuffer = imageResponse.data;
+        } catch (err) {
+            console.error(err);
+            return res.redirect(originalImageUrl.href);
+        }
 
-        const imageBuffer = imageResponse.data;
         const imageMetadata = await sharp(imageBuffer).metadata();
 
         const logoMetadata = await sharp(logoPath).metadata(); 
