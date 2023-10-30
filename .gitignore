@@ -106,3 +106,4 @@ dist
 # remove image directory
 /content
 /images
+.DS_Store
