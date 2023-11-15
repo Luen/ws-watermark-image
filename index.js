@@ -1,14 +1,14 @@
 const express = require('express');
 const rateLimit = require('express-rate-limit');
+const compression = require('compression');
+const cors = require('cors');
+const csrf = require('csurf');
+const cookieParser = require('cookie-parser');
 const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
 const sharp = require('sharp');
 const helmet = require('helmet');
-const compression = require('compression');
-const cors = require('cors');
-const csrf = require('csurf');
-const cookieParser = require('cookie-parser');
 
 const port = process.env.PORT || 8080;
 
@@ -65,7 +65,7 @@ app.get('/content/images/*', async (req, res, next) => { // Only allow this spec
         // Very strict validation to only allow certain characters in the path
         if (!/^[\w\-\/\.]+$/.test(relativePath)) {
             // invalid path
-            console.error('Invalid path');
+            //console.error('Invalid path');
             return res.status(400).send('Invalid request');
         }
 
@@ -73,17 +73,19 @@ app.get('/content/images/*', async (req, res, next) => { // Only allow this spec
 
         if (!accepted.includes(fileExtension)) {
             // invalid file type
-            console.error('Invalid file type');
+            //console.error('Invalid file type');
             return res.status(400).send('Invalid request');
         }
 
         const imagePath = path.join(__dirname, 'content', 'images', relativePath);
 
         try {
+            // await fs.promises.access(imagePath, fs.constants.F_OK);
             await fs.promises.access(imagePath);
             return res.sendFile(imagePath);
         } catch (err) {
             // File doesn't exist (this is expected), continue processing
+            // console.error("File does not exist, proceeding with processing: ", err);
         }
 
         // Split the path by slashes
@@ -100,11 +102,16 @@ app.get('/content/images/*', async (req, res, next) => { // Only allow this spec
             const imageResponse = await axios.get(originalImageUrl.href, { responseType: 'arraybuffer' });
             imageBuffer = imageResponse.data;
         } catch (err) {
-            console.error(err);
+            //console.error(err);
             return res.redirect(originalImageUrl.href);
         }
 
         const imageMetadata = await sharp(imageBuffer).metadata();
+
+        // Check if image exceeds maximum dimensions
+        if (imageMetadata.width > 2000 || imageMetadata.height > 2000) {
+            return res.status(413).send('Image too large');
+        }
 
         const logoMetadata = await sharp(logoPath).metadata(); 
         let compositeLogoBuffer;
@@ -145,14 +152,20 @@ app.get('/content/images/*', async (req, res, next) => { // Only allow this spec
 
         // Safely create directory and write file
         const directoryPath = path.dirname(imagePath);
-        await fs.promises.mkdir(directoryPath, { recursive: true });
-        await fs.promises.writeFile(imagePath, outputBuffer);
+        try {
+            await fs.promises.mkdir(directoryPath, { recursive: true });
+            await fs.promises.writeFile(imagePath, outputBuffer);
+        } catch (err) {
+            // Handle file writing error
+            // console.error("Error writing file: ", err);
+            return res.status(500).send('Internal Server Error');
+        }
 
         return res.sendFile(imagePath);
 
     } catch (err) {
-        console.error(err);
-        return res.status(500).send('Server Error');
+        //console.error(err);
+        return res.status(500).send('Internal Server Error');
     }
 });
 
