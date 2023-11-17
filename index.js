@@ -1,6 +1,5 @@
 const express = require('express');
 const rateLimit = require('express-rate-limit');
-//const compression = require('compression');
 const cors = require('cors');
 const csrf = require('csurf');
 const cookieParser = require('cookie-parser');
@@ -31,7 +30,6 @@ app.use(
         crossOriginResourcePolicy: { policy: 'cross-origin' },
       }) 
 ); // Apply additional security headers
-//app.use(compression()); // Compress all routes
 const corsOptions = {
     origin: function (origin, callback) {
       callback(null, true)
