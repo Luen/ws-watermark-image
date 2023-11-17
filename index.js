@@ -1,14 +1,15 @@
 const express = require('express');
 const rateLimit = require('express-rate-limit');
-const compression = require('compression');
+//const compression = require('compression');
 const cors = require('cors');
 const csrf = require('csurf');
 const cookieParser = require('cookie-parser');
+const helmet = require('helmet');
 const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
 const sharp = require('sharp');
-const helmet = require('helmet');
+
 
 const port = process.env.PORT || 8080;
 
@@ -30,7 +31,7 @@ app.use(
         crossOriginResourcePolicy: { policy: 'cross-origin' },
       }) 
 ); // Apply additional security headers
-app.use(compression()); // Compress all routes
+//app.use(compression()); // Compress all routes
 const corsOptions = {
     origin: function (origin, callback) {
       callback(null, true)
