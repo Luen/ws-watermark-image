@@ -4,7 +4,6 @@ const cors = require('cors')
 const csrf = require('csurf')
 const cookieParser = require('cookie-parser')
 const helmet = require('helmet')
-const axios = require('axios')
 const fs = require('fs')
 const path = require('path')
 const sharp = require('sharp')
@@ -110,10 +109,12 @@ app.get('/content/images/*', async (req, res, next) => {
 
         let imageBuffer
         try {
-            const imageResponse = await axios.get(originalImageUrl.href, {
-                responseType: 'arraybuffer',
-            })
-            imageBuffer = imageResponse.data
+            const imageResponse = await fetch(originalImageUrl.href)
+            if (!imageResponse.ok) {
+                console.error('Failed to fetch image')
+                throw new Error('Failed to fetch image')
+            }
+            imageBuffer = await imageResponse.arrayBuffer()
         } catch (err) {
             //console.error(err);
             return res.redirect(originalImageUrl.href)
@@ -161,6 +162,12 @@ app.get('/content/images/*', async (req, res, next) => {
                     input: resizedLogoBuffer,
                     gravity: 'center',
                     blend: 'overlay',
+                },
+                {
+                    input: resizedLogoBuffer,
+                    gravity: 'center',
+                    blend: 'dest-over',
+                    opacity: 0.1,
                 },
             ])
             .jpeg({ quality: 60 })
