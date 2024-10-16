@@ -52,14 +52,23 @@ app.use(
         crossOriginResourcePolicy: { policy: 'cross-origin' },
     })
 ) // Implement security headers
+const allowedOrigins = [
+    'https://images.wanderstories.space',
+    'https://wanderstories.space',
+]
 const corsOptions = {
     origin: function (origin, callback) {
-        callback(null, true)
+        if (allowedOrigins.includes(origin)) {
+            callback(null, true)
+        } else {
+            callback(new Error('Not allowed by CORS'))
+        }
     },
+    credentials: true,
     optionsSuccessStatus: 204,
-    credentials: true, // Enable credentials (cookies, etc.)
 }
-app.use(cors(corsOptions)) // Enable CORS for all routes
+app.use(cors(corsOptions))
+// Enable CORS for all routes
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000,
     max: 200,
