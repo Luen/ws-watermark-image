@@ -14,15 +14,15 @@
     "compression": "^1.7.4",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
-    "csrf-csrf": "^3.0.6",
+    "csrf-csrf": "^3.0.8",
     "express": "^4.21.1",
-    "express-rate-limit": "^6.11.2",
+    "express-rate-limit": "^7.4.1",
     "express-session": "^1.18.1",
-    "helmet": "^7.0.0",
+    "helmet": "^8.0.0",
     "sharp": "^0.33.5"
   },
   "devDependencies": {
-    "eslint": "^8.44.0",
-    "nodemon": "^3.0.1"
+    "eslint": "^9.12.0",
+    "nodemon": "^3.1.7"
   }
 }
