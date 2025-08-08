@@ -19,7 +19,7 @@
     "express-rate-limit": "^7.5.0",
     "express-session": "^1.18.2",
     "helmet": "^8.0.0",
-    "sharp": "^0.33.5"
+    "sharp": "^0.34.3"
   },
   "devDependencies": {
     "eslint": "^9.12.0",
