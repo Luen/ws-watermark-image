@@ -12,6 +12,7 @@ const port = process.env.PORT || 8080
 
 const accepted = ['jpg', 'jpeg', 'png']
 const logoPath = path.join(__dirname, 'Wanderstories-logo.png')
+const imagesRoot = path.resolve(__dirname, 'content', 'images')
 
 const app = express()
 app.set('trust proxy', 1) // trust first proxy
@@ -117,11 +118,15 @@ app.get('/content/images/*', async (req, res, next) => {
             'images',
             relativePath
         )
+        const resolvedImagePath = path.resolve(imagePath)
+        if (!resolvedImagePath.startsWith(imagesRoot + path.sep)) {
+            return res.status(403).send('Forbidden')
+        }
 
         try {
             // await fs.promises.access(imagePath, fs.constants.F_OK);
-            await fs.promises.access(imagePath)
-            return res.sendFile(imagePath)
+            await fs.promises.access(resolvedImagePath)
+            return res.sendFile(resolvedImagePath)
         } catch (err) {
             // File doesn't exist (this is expected), continue processing
             // console.error("File does not exist, proceeding with processing: ", err);
@@ -205,19 +210,23 @@ app.get('/content/images/*', async (req, res, next) => {
             ])
             .jpeg({ quality: 60 })
             .toBuffer()
+        const resolvedImagePath = path.resolve(imagePath)
+        if (!resolvedImagePath.startsWith(imagesRoot + path.sep)) {
+            return res.status(403).send('Forbidden')
+        }
 
         // Safely create directory and write file
         const directoryPath = path.dirname(imagePath)
         try {
             await fs.promises.mkdir(directoryPath, { recursive: true })
-            await fs.promises.writeFile(imagePath, outputBuffer)
+            await fs.promises.writeFile(resolvedImagePath, outputBuffer)
         } catch (err) {
             // Handle file writing error
             // console.error("Error writing file: ", err);
             return res.status(500).send('Internal Server Error')
         }
 
-        return res.sendFile(imagePath)
+        return res.sendFile(resolvedImagePath)
     } catch (err) {
         //console.error(err);
         return res.status(500).send('Internal Server Error')
