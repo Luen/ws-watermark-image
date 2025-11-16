@@ -76,7 +76,7 @@ app.use(cors(corsOptions))
 // Enable CORS for all routes
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 200,
+    max: 800,
     standardHeaders: true,
     legacyHeaders: false,
 })
