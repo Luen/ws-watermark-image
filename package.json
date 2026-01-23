@@ -10,7 +10,7 @@
   "author": "Luen Warneke",
   "license": "ISC",
   "dependencies": {
-    "@dr.pogodin/csurf": "^1.16.6",
+    "@dr.pogodin/csurf": "^1.16.7",
     "compression": "^1.8.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
