@@ -1,32 +1,27 @@
-# Use Node.js LTS version as base image
-FROM node:20-slim
+# syntax=docker/dockerfile:1
 
-# Install system dependencies required for Sharp (image processing library)
-# Sharp uses prebuilt binaries, so we only need the runtime library
-RUN apt-get update && apt-get install -y \
-    libvips \
-    && rm -rf /var/lib/apt/lists/*
+# Express + sharp image watermarker. Sharp ships glibc prebuilds — no system
+# libvips/build toolchain needed on bookworm-slim (unlike Alpine/musl).
 
-# Set working directory
+FROM node:22-bookworm-slim
+
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
+ENV NODE_ENV=production
 
-# Install dependencies
-RUN npm ci --only=production
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev && npm cache clean --force
 
-# Copy application files
-COPY index.js ./
-COPY Wanderstories-logo.png ./
-COPY favicon.ico ./
+COPY index.js Wanderstories-logo.png favicon.ico ./
 
-# Create content/images directory for storing processed images
-RUN mkdir -p content/images
+RUN mkdir -p content/images \
+  && chown -R node:node /app
 
-# Expose the port the app runs on
+USER node
+
 EXPOSE 8080
 
-# Run the application
-CMD ["node", "index.js"]
+HEALTHCHECK --interval=30s --timeout=10s --start-period=20s --retries=3 \
+  CMD node -e "require('http').get('http://127.0.0.1:'+(process.env.PORT||8080)+'/', (r) => process.exit(r.statusCode===200?0:1)).on('error', () => process.exit(1))"
 
+CMD ["node", "index.js"]
