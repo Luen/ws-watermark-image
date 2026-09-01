@@ -13,7 +13,7 @@
     "@dr.pogodin/csurf": "^1.17.1",
     "compression": "^1.8.0",
     "cookie-parser": "^1.4.7",
-    "cors": "^2.8.5",
+    "cors": "^2.8.6",
     "csrf-csrf": "^3.2.2",
     "express": "^4.22.2",
     "express-rate-limit": "^7.5.1",
