@@ -6,7 +6,7 @@ Treat this file as living documentation: update it when the stack, scripts, or p
 
 ## Project overview
 
-Wanderstories image watermark proxy: Express + sharp.
+Wanderstories image watermark proxy: Express 5 + sharp. Image routes use a named Express 5 wildcard (`/content/images/{*imagePath}`); `req.params.imagePath` is an array of path segments.
 
 ## Setup
 
