@@ -76,7 +76,7 @@ app.use(cors(corsOptions))
 // Enable CORS for all routes
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 800,
+    limit: 800,
     standardHeaders: true,
     legacyHeaders: false,
 })
@@ -93,10 +93,13 @@ app.get('/favicon.ico', async (req, res, next) => {
     res.sendFile(path.join(__dirname, 'favicon.ico'))
 })
 
-app.get('/content/images/*', async (req, res, next) => {
+app.get('/content/images/{*imagePath}', async (req, res, next) => {
     // Only allow this specific pattern
     try {
-        const relativePath = req.params[0] // Get the relative path after /content/images/
+        const imagePathParam = req.params.imagePath
+        const relativePath = Array.isArray(imagePathParam)
+            ? imagePathParam.join('/')
+            : imagePathParam || ''
 
         // Very strict validation to only allow certain characters in the path
         if (!/^[\w\-\/\.]+$/.test(relativePath)) {
@@ -233,6 +236,9 @@ app.get('/content/images/*', async (req, res, next) => {
     }
 })
 
-app.listen(port, () => {
+app.listen(port, (error) => {
+    if (error) {
+        throw error
+    }
     console.log(`Listening on http://localhost:${port}`)
 })
