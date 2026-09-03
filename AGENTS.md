@@ -10,10 +10,10 @@ Treat this file as **living documentation**. Update it in the same PR when the s
 
 | Branch | Role |
 | --- | --- |
-| `develop` | Default branch for features and improvements |
+| `dev` | Default branch for features and improvements |
 | `main` | Production. Safe dependency bumps and releases land here |
 
-- Open feature/fix PRs against **`develop`**.
+- Open feature/fix PRs against **`dev`**.
 - Promote to **`main`** when ready for production.
 - Do not use `master` (rename to `main` if any remnant remains).
 
