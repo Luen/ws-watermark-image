@@ -1,0 +1,136 @@
+# Nightly in-range dependency update → patch release → Docker Hub push (main only).
+# Minor/patch only via npm semver ranges (npm update). No-op when lockfile unchanged.
+
+name: Nightly minor deps release
+
+on:
+  schedule:
+    - cron: '17 14 * * *' # ~00:17 AEST
+  workflow_dispatch:
+
+concurrency:
+  group: nightly-minor-deps-${{ github.repository }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  update-release-docker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install current lockfile
+        run: npm ci
+
+      - name: Update within semver ranges
+        run: npm update
+
+      - name: Detect lockfile changes
+        id: changes
+        run: |
+          set -euo pipefail
+          if git status --porcelain | grep -E '(package-lock\.json|package\.json|yarn\.lock|pnpm-lock\.yaml)' >/dev/null; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "No dependency lockfile changes."
+          fi
+
+      - name: Lint (if present)
+        if: steps.changes.outputs.changed == 'true'
+        run: |
+          set -euo pipefail
+          if npm run | grep -qE '^  lint'; then
+            npm run lint
+          else
+            echo "No lint script; skipping."
+          fi
+
+      - name: Test (if present)
+        if: steps.changes.outputs.changed == 'true'
+        run: |
+          set -euo pipefail
+          if npm run | grep -qE '^  test'; then
+            npm test
+          else
+            echo "No test script; skipping."
+          fi
+
+      - name: Bump patch version
+        if: steps.changes.outputs.changed == 'true'
+        id: version
+        run: |
+          set -euo pipefail
+          NEW_VERSION="$(npm version patch --no-git-tag-version)"
+          NEW_VERSION="${NEW_VERSION#v}"
+          echo "version=${NEW_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "Bumped to ${NEW_VERSION}"
+
+      - name: Commit dependency bump
+        if: steps.changes.outputs.changed == 'true'
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A package.json package-lock.json
+          if [ -f yarn.lock ]; then git add yarn.lock; fi
+          if [ -f pnpm-lock.yaml ]; then git add pnpm-lock.yaml; fi
+          git commit -m "chore(deps): nightly minor/patch update (${{ steps.version.outputs.version }})"
+          git push origin HEAD:main
+
+      - name: Create GitHub Release
+        if: steps.changes.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          TAG="v${VERSION}"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release $TAG already exists"
+            exit 0
+          fi
+          gh release create "$TAG" --target main --title "$TAG" --notes "Nightly in-range dependency update (${TAG})."
+
+      - name: Set up QEMU
+        if: steps.changes.outputs.changed == 'true'
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        if: steps.changes.outputs.changed == 'true'
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        if: steps.changes.outputs.changed == 'true'
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push image
+        if: steps.changes.outputs.changed == 'true'
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/${{ github.event.repository.name }}:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/${{ github.event.repository.name }}:v${{ steps.version.outputs.version }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/${{ github.event.repository.name }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
