@@ -9,8 +9,8 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 
-COPY package.json package-lock.json ./
-RUN npm ci --omit=dev && npm cache clean --force
+COPY package.json pnpm-lock.yaml ./
+RUN corepack enable && corepack prepare pnpm@10.33.0 --activate && pnpm install --frozen-lockfile --prod && pnpm store prune || true
 
 COPY index.js Wanderstories-logo.png favicon.ico ./
 

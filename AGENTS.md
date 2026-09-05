@@ -17,12 +17,20 @@ Treat this file as **living documentation**. Update it in the same PR when the s
 - Promote to **`main`** when ready for production.
 - Do not use `master` (rename to `main` if any remnant remains).
 
+## Package manager
+
+This repo uses **pnpm** (`packageManager` in `package.json`).
+
+- Install: `pnpm install` (do not use npm/yarn for installs in this repo).
+- Scripts: `pnpm run <script>` / `pnpm exec <bin>`.
+- Lockfile: `pnpm-lock.yaml` only â€” do not commit `package-lock.json` or `yarn.lock`.
+- Local disk: pnpm's content-addressable store shares package contents across checkouts on the same machine.
 ## Dependency and deploy notes
 
 ### Tier B - Docker services (nightly on main)
 
 - Nightly GitHub Action (`.github/workflows/nightly-minor-deps-release.yml`) runs on **`main`**:
-  1. `npm update` (in-range / minor+patch only)
+  1. `pnpm update` (in-range / minor+patch only)
   2. lint/test when scripts exist
   3. if lockfile changed: patch bump, commit to `main`, GitHub Release, push Docker Hub image
 - Image tags: `$DOCKERHUB_USERNAME/<repo>:latest`, `:v<version>`, `:<sha>`
@@ -37,12 +45,12 @@ Wanderstories image watermark proxy: Express 5 + sharp. Image routes use a named
 ## Setup
 
 ```bash
-npm install
+pnpm install
 npm start
-npm run dev
+pnpm run dev
 ```
 
-ESLint is a devDependency; run `npx eslint .` after JS changes if there is no `lint` script, and fix issues before finishing.
+ESLint is a devDependency; run `pnpm exec eslint .` after JS changes if there is no `lint` script, and fix issues before finishing.
 
 ## Conventions
 
