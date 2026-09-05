@@ -1,5 +1,5 @@
-# Nightly in-range dependency update → patch release → Docker Hub push (main only).
-# Minor/patch only via npm semver ranges (pnpm update). No-op when lockfile unchanged.
+# Nightly in-range dependency update â†’ patch release â†’ Docker Hub push (dev only).
+# Minor/patch only via pnpm semver ranges (pnpm update). No-op when lockfile unchanged.
 
 name: Nightly minor deps release
 
@@ -23,7 +23,7 @@ jobs:
       - name: Checkout main
         uses: actions/checkout@v7
         with:
-          ref: main
+          ref: dev
           token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 0
       - name: Setup pnpm
@@ -94,7 +94,7 @@ jobs:
           if [ -f pnpm-lock.yaml ]; then git add pnpm-lock.yaml; fi
           if [ -f pnpm-lock.yaml ]; then git add pnpm-lock.yaml; fi
           git commit -m "chore(deps): nightly minor/patch update (${{ steps.version.outputs.version }})"
-          git push origin HEAD:main
+          git push origin HEAD:dev
 
       - name: Create GitHub Release
         if: steps.changes.outputs.changed == 'true'
@@ -108,7 +108,7 @@ jobs:
             echo "Release $TAG already exists"
             exit 0
           fi
-          gh release create "$TAG" --target main --title "$TAG" --notes "Nightly in-range dependency update (${TAG})."
+          gh release create "$TAG" --target dev --title "$TAG" --notes "Nightly in-range dependency update (${TAG})."
 
       - name: Set up QEMU
         if: steps.changes.outputs.changed == 'true'
