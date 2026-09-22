@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@dr.pogodin/csurf':
-        specifier: ^1.17.1
-        version: 1.17.1
+        specifier: ^1.18.1
+        version: 1.18.1
       compression:
         specifier: ^1.8.2
         version: 1.8.2
@@ -48,18 +48,14 @@ importers:
 
 packages:
 
-  '@babel/runtime@7.29.7':
-    resolution: {integrity: sha512-Nq8OhGWiZIZGV6hLHoyAKLLcJihP/xFeBMGJoUrxTX2psI8dCifzLhZISFb+VWS3wFMRDmCGw5R+dOySCqPLhw==}
-    engines: {node: '>=6.9.0'}
-
   '@cacheable/memory@2.2.0':
     resolution: {integrity: sha512-CTLKqLItRCEixEAewD3/j9DB3/o96gpTPD4eJ1v+DGOlxZRZncRQkGYqqnAGCscYd6RNeXfGeiuCphsPtqyIfQ==}
 
   '@cacheable/utils@2.5.0':
     resolution: {integrity: sha512-buipgOVDkkPXNR5+xBpDw7Zk2n1EvU7qBJCNUcL7rhQ//kfpOXPAvQ511Os0vpLYJ1pZnvudNytkQt2hst3wqA==}
 
-  '@dr.pogodin/csurf@1.17.1':
-    resolution: {integrity: sha512-Yn+WUd8N2PVCyF0kENq2zmUUSATqN/b0ZuKFIv2PJMw/Fu2ahiqnc/RWwlwT3gmqJZ5fjIuoz+kuY7F8rXnZaQ==}
+  '@dr.pogodin/csurf@1.18.1':
+    resolution: {integrity: sha512-3jtSsJq6GqC0XbufqYsdA850DJo2qS/4408VZPjWrgSyu3W+auLt6QoN/uMdRX3aH8njbckrmpUUuDw7IxTVrA==}
     engines: {node: '>=22'}
 
   '@emnapi/runtime@1.11.3':
@@ -393,9 +389,9 @@ packages:
     resolution: {integrity: sha512-yki5XnKuf750l50uGTllt6kKILY4nQ1eNIQatoXEByZ5dWgnKqbnqmTrBE5B4N7lrMJKQ2ytWMiTO2o0v6Ew/w==}
     engines: {node: '>= 0.6'}
 
-  cookie@1.1.1:
-    resolution: {integrity: sha512-ei8Aos7ja0weRpFzJnEA9UHJ/7XQmqglbRwnf2ATjcB9Wq874VKH9kfjjirM6UhU2/E5fFYadylyhFldcqSidQ==}
-    engines: {node: '>=18'}
+  cookie@2.0.1:
+    resolution: {integrity: sha512-yuToqVvRrj6pfDXREyQAAv8SkAEk/8GS3jQRTiUMm66TVtBYmqQeoEjL2Lmq8Rpo6271vH76InTChTitEAm65w==}
+    engines: {node: '>=22'}
 
   cors@2.8.6:
     resolution: {integrity: sha512-tJtZBBHA6vjIAaF6EnIaq6laBBP9aq/Y3ouVJjEfoHbRBcHBAHYcMh/w8LDrk2PvIMMq8gmopa5D4V8RmbrxGw==}
@@ -960,8 +956,6 @@ packages:
 
 snapshots:
 
-  '@babel/runtime@7.29.7': {}
-
   '@cacheable/memory@2.2.0':
     dependencies:
       '@cacheable/utils': 2.5.0
@@ -974,10 +968,9 @@ snapshots:
       hashery: 1.5.1
       keyv: 5.6.0
 
-  '@dr.pogodin/csurf@1.17.1':
+  '@dr.pogodin/csurf@1.18.1':
     dependencies:
-      '@babel/runtime': 7.29.7
-      cookie: 1.1.1
+      cookie: 2.0.1
       cookie-signature: 1.2.2
       http-errors: 2.0.1
 
@@ -1269,7 +1262,7 @@ snapshots:
 
   cookie@0.7.2: {}
 
-  cookie@1.1.1: {}
+  cookie@2.0.1: {}
 
   cors@2.8.6:
     dependencies:
