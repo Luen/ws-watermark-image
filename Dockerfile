@@ -10,7 +10,9 @@ WORKDIR /app
 ENV NODE_ENV=production
 
 COPY package.json pnpm-lock.yaml ./
-RUN corepack enable && corepack prepare pnpm@12.8.1 --activate && pnpm install --frozen-lockfile --prod && pnpm store prune || true
+RUN corepack enable && corepack prepare pnpm@12.8.1 --activate \
+  && pnpm install --frozen-lockfile --prod \
+  && (pnpm store prune || true)
 
 COPY index.js Wanderstories-logo.png favicon.ico ./
 
