@@ -5,6 +5,6 @@ Watermark Wanderstories images using a proxy (express & sharp).
 ```
 git clone https://github.com/Luen/ws-watermark-image
 cd ws-watermark-image/
-npm install
+pnpm install
 npm start
 ```
