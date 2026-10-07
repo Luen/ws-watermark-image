@@ -27,12 +27,12 @@ This repo uses **pnpm** (`packageManager` in `package.json`).
 - Local disk: pnpm's content-addressable store shares package contents across checkouts on the same machine.
 ## Dependency and deploy notes
 
-### Tier B - Docker services (nightly on main)
+### Tier B - Docker services (nightly on dev)
 
-- Nightly GitHub Action (`.github/workflows/nightly-minor-deps-release.yml`) runs on **`main`**:
+- Nightly GitHub Action (`.github/workflows/nightly-minor-deps-release.yml`) runs on **`dev`**:
   1. `pnpm update` (in-range / minor+patch only)
   2. lint/test when scripts exist
-  3. if lockfile changed: patch bump, commit to `main`, GitHub Release, push Docker Hub image
+  3. if lockfile changed: patch bump (via `pnpm pkg set`, not `pnpm version` — dirty tree after update), commit to `dev`, GitHub Release, push Docker Hub image
 - Image tags: `$DOCKERHUB_USERNAME/<repo>:latest`, `:v<version>`, `:<sha>`
 - Servers should pull/recreate from Docker Hub (e.g. Watchtower or cron).
 - Dependabot auto-merge for routine minor/patch is **disabled** here to avoid duplicate bumps; leave majors/security as human-reviewed PRs.
