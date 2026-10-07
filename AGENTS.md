@@ -2,7 +2,41 @@
 
 Agent-focused guidance for this repository ([AGENTS.md format](https://agents.md/)). Human-facing docs live in `README.md`.
 
-Treat this file as living documentation: update it when the stack, scripts, or project facts change.
+## Living document
+
+Treat this file as **living documentation**. Update it in the same PR when the stack, scripts, branch model, deploy path, or other project facts change. Future agents should keep it accurate rather than leaving stale instructions.
+
+## Branch model
+
+| Branch | Role |
+| --- | --- |
+| `dev` | Default branch for features and improvements |
+| `main` | Production. Safe dependency bumps and releases land here |
+
+- Open feature/fix PRs against **`dev`**.
+- Promote to **`main`** when ready for production.
+- Do not use `master` (rename to `main` if any remnant remains).
+
+## Package manager
+
+This repo uses **pnpm** (`packageManager` in `package.json`).
+
+- Install: `pnpm install` (do not use npm/yarn for installs in this repo).
+- Scripts: `pnpm run <script>` / `pnpm exec <bin>`.
+- Lockfile: `pnpm-lock.yaml` only â€” do not commit `package-lock.json` or `yarn.lock`.
+- Local disk: pnpm's content-addressable store shares package contents across checkouts on the same machine.
+## Dependency and deploy notes
+
+### Tier B - Docker services (nightly on dev)
+
+- Nightly GitHub Action (`.github/workflows/nightly-minor-deps-release.yml`) runs on **`dev`**:
+  1. `pnpm update` (in-range / minor+patch only)
+  2. lint/test when scripts exist
+  3. if lockfile changed: patch bump (via `pnpm pkg set`, not `pnpm version` — dirty tree after update), commit to `dev`, GitHub Release, push Docker Hub image
+- Image tags: `$DOCKERHUB_USERNAME/<repo>:latest`, `:v<version>`, `:<sha>`
+- Servers should pull/recreate from Docker Hub (e.g. Watchtower or cron).
+- Dependabot auto-merge for routine minor/patch is **disabled** here to avoid duplicate bumps; leave majors/security as human-reviewed PRs.
+- Requires repo secrets: `DOCKERHUB_USERNAME`, `DOCKERHUB_TOKEN`.
 
 ## Project overview
 
@@ -11,12 +45,12 @@ Wanderstories image watermark proxy: Express 5 + sharp. Image routes use a named
 ## Setup
 
 ```bash
-npm install
+pnpm install
 npm start
-npm run dev
+pnpm run dev
 ```
 
-ESLint is a devDependency; run `npx eslint .` after JS changes if there is no `lint` script, and fix issues before finishing.
+ESLint is a devDependency; run `pnpm exec eslint .` after JS changes if there is no `lint` script, and fix issues before finishing.
 
 ## Conventions
 
@@ -28,5 +62,5 @@ ESLint is a devDependency; run `npx eslint .` after JS changes if there is no `l
 
 Before merging any pull request:
 
-1. **Read all comments** on the PR — conversation comments, review comments (including those on specific lines), and bot comments. Address or acknowledge them. Do not merge while review feedback is unresolved.
+1. **Read all comments** on the PR �?" conversation comments, review comments (including those on specific lines), and bot comments. Address or acknowledge them. Do not merge while review feedback is unresolved.
 2. **Wait for CI to complete successfully.** GitHub Actions (and other required checks) on the PR must finish and pass. Do not merge while checks are pending, failed, cancelled, or skipped when they are required. If CI fails, fix the cause and wait for a green run before merging.
