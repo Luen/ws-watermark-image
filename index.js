@@ -1,7 +1,8 @@
 const express = require('express')
 const rateLimit = require('express-rate-limit')
 const cors = require('cors')
-const csrf = require('@dr.pogodin/csurf')
+const csrfImport = require('@dr.pogodin/csurf')
+const csrf = typeof csrfImport === 'function' ? csrfImport : csrfImport.default
 const cookieParser = require('cookie-parser')
 const helmet = require('helmet')
 const fs = require('fs')
