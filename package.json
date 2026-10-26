@@ -1,6 +1,6 @@
 {
   "name": "ws-watermark-image",
-  "version": "1.0.22",
+  "version": "1.0.23",
   "description": "Wanderstories Image Watermarker",
   "main": "index.js",
   "scripts": {
