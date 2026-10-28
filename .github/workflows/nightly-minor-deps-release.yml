@@ -1,5 +1,12 @@
-# Nightly in-range dependency update -> patch release -> Docker Hub push (dev only).
-# Minor/patch only via pnpm semver ranges (pnpm update). No-op when lockfile unchanged.
+# Nightly dependency refresh → patch release (main).
+#
+# Raises package.json ranges to the newest in-major release via npm-check-updates
+# (`--target semver`). Versions published in the last COOLDOWN_DAYS days are
+# skipped so a hijacked release has time to be yanked.
+#
+# package.json is the only file ncu edits on purpose; the lockfile is then
+# re-resolved for changed specifiers only (`pnpm/npm install`).
+
 
 name: Nightly minor deps release
 
@@ -12,8 +19,13 @@ concurrency:
   group: nightly-minor-deps-${{ github.repository }}
   cancel-in-progress: false
 
+env:
+  NCU_VERSION: 23.1.1
+  COOLDOWN_DAYS: 3
+
 permissions:
   contents: write
+  pull-requests: write
 
 jobs:
   update-release-docker:
@@ -38,22 +50,29 @@ jobs:
           node-version: '24'
           cache: pnpm
 
-      - name: Install current lockfile
-        run: pnpm install --frozen-lockfile
+      - name: Raise package.json ranges (same major)
+        run: |
+          set -euo pipefail
+          npx --yes "npm-check-updates@${{ env.NCU_VERSION }}" \
+            --target semver \
+            --cooldown "${{ env.COOLDOWN_DAYS }}" \
+            --upgrade
 
-      - name: Update within semver ranges
-        run: pnpm update
-
-      - name: Detect lockfile changes
+      - name: Detect package.json changes
         id: changes
         run: |
           set -euo pipefail
-          if git status --porcelain | grep -E '(package-lock\.json|package\.json|yarn\.lock|pnpm-lock\.yaml)' >/dev/null; then
-            echo "changed=true" >> "$GITHUB_OUTPUT"
-          else
+          if git diff --quiet -- package.json; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
-            echo "No dependency lockfile changes."
+            echo "All dependencies already at the newest in-major release."
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            git diff -- package.json
           fi
+
+      - name: Sync lockfile to package.json
+        if: steps.changes.outputs.changed == 'true'
+        run: pnpm install --no-frozen-lockfile
 
       - name: Lint (if present)
         if: steps.changes.outputs.changed == 'true'
@@ -97,7 +116,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add package.json pnpm-lock.yaml
-          git commit -m "chore(deps): nightly minor/patch update (${{ steps.version.outputs.version }})"
+          git commit -m "chore(deps): nightly in-major dependency update (${{ steps.version.outputs.version }})"
           git push origin HEAD:dev
 
       - name: Create GitHub Release
@@ -112,7 +131,7 @@ jobs:
             echo "Release $TAG already exists"
             exit 0
           fi
-          gh release create "$TAG" --target dev --title "$TAG" --notes "Nightly in-range dependency update (${TAG})."
+          gh release create "$TAG" --target dev --title "$TAG" --notes "Nightly in-major dependency update (${TAG})."
 
       - name: Set up QEMU
         if: steps.changes.outputs.changed == 'true'
