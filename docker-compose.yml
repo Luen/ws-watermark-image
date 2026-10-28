@@ -1,5 +1,7 @@
 services:
     watermark-service:
+        # Prefer GHCR on servers (Watchtower). Local: docker compose up --build
+        image: ghcr.io/luen/ws-watermark-image:latest
         build:
             context: .
             dockerfile: Dockerfile
