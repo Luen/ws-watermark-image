@@ -64,3 +64,7 @@ Before merging any pull request:
 
 1. **Read all comments** on the PR �?" conversation comments, review comments (including those on specific lines), and bot comments. Address or acknowledge them. Do not merge while review feedback is unresolved.
 2. **Wait for CI to complete successfully.** GitHub Actions (and other required checks) on the PR must finish and pass. Do not merge while checks are pending, failed, cancelled, or skipped when they are required. If CI fails, fix the cause and wait for a green run before merging.
+
+## Node runtime
+
+Use Node.js 26 LTS (`.nvmrc`). Docker pins Node 26.13.0 with its multi-platform image digest. Install pnpm via `npm install -g pnpm@<pinned-version>` in Node 26 images; Corepack is no longer bundled. PR checks build the production Docker image without publishing it.
