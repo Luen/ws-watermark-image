@@ -32,7 +32,7 @@ This repo uses **pnpm** (`packageManager` in `package.json`).
 - Nightly GitHub Action (`.github/workflows/nightly-minor-deps-release.yml`) runs on **`dev`**:
   1. npm-check-updates `--target semver` with `--cooldown 3` (raises package.json in-major ranges; lockfile re-resolved after)
   2. lint/test when scripts exist
-  3. if package.json ranges changed: patch bump (via `pnpm pkg set`, not `pnpm version` — dirty tree after update), commit to `dev`, GitHub Release, push Docker Hub image
+  3. if package.json ranges changed: lint/test; **release only when a production dependency moved** (`dependencies` / `optionalDependencies` / `peerDependencies`) — patch bump, commit, GitHub Release, image. `devDependencies`-only updates commit without releasing
 - Image tags: `$DOCKERHUB_USERNAME/<repo>:latest`, `:v<version>`, `:<sha>`
 - Servers should pull/recreate from Docker Hub (e.g. Watchtower or cron).
 - Dependabot auto-merge for routine minor/patch is **disabled** here to avoid duplicate bumps; leave majors/security as human-reviewed PRs.
@@ -64,3 +64,7 @@ Before merging any pull request:
 
 1. **Read all comments** on the PR �?" conversation comments, review comments (including those on specific lines), and bot comments. Address or acknowledge them. Do not merge while review feedback is unresolved.
 2. **Wait for CI to complete successfully.** GitHub Actions (and other required checks) on the PR must finish and pass. Do not merge while checks are pending, failed, cancelled, or skipped when they are required. If CI fails, fix the cause and wait for a green run before merging.
+
+## Node runtime
+
+Use Node.js 26 LTS (`.nvmrc`). Docker pins Node 26.13.0 with its multi-platform image digest. Install pnpm via `npm install -g pnpm@<pinned-version>` in Node 26 images; Corepack is no longer bundled. PR checks build the production Docker image without publishing it.
