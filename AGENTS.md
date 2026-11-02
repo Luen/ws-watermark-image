@@ -32,7 +32,7 @@ This repo uses **pnpm** (`packageManager` in `package.json`).
 - Nightly GitHub Action (`.github/workflows/nightly-minor-deps-release.yml`) runs on **`dev`**:
   1. npm-check-updates `--target semver` with `--cooldown 3` (raises package.json in-major ranges; lockfile re-resolved after)
   2. lint/test when scripts exist
-  3. if package.json ranges changed: patch bump (via `pnpm pkg set`, not `pnpm version` — dirty tree after update), commit to `dev`, GitHub Release, push Docker Hub image
+  3. if package.json ranges changed: lint/test; **release only when a production dependency moved** (`dependencies` / `optionalDependencies` / `peerDependencies`) — patch bump, commit, GitHub Release, image. `devDependencies`-only updates commit without releasing
 - Image tags: `$DOCKERHUB_USERNAME/<repo>:latest`, `:v<version>`, `:<sha>`
 - Servers should pull/recreate from Docker Hub (e.g. Watchtower or cron).
 - Dependabot auto-merge for routine minor/patch is **disabled** here to avoid duplicate bumps; leave majors/security as human-reviewed PRs.

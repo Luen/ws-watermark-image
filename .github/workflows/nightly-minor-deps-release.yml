@@ -1,4 +1,9 @@
-# Nightly dependency refresh → patch release (main).
+# Nightly dependency refresh → optional patch release (main).
+#
+# Release only when a production dependency range moved
+# (`dependencies` / `optionalDependencies` / `peerDependencies`).
+# A `devDependencies`-only update is still committed after lint/test,
+# but does not bump, tag, GitHub Release, or publish an image.
 #
 # Raises package.json ranges to the newest in-major release via npm-check-updates
 # (`--target semver`). Versions published in the last COOLDOWN_DAYS days are
@@ -63,10 +68,37 @@ jobs:
           set -euo pipefail
           if git diff --quiet -- package.json; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "release=false" >> "$GITHUB_OUTPUT"
             echo "All dependencies already at the newest in-major release."
+            exit 0
+          fi
+
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+          git diff -- package.json
+
+          # Classify prod vs dev section changes against HEAD.
+          CLASSIFY="$(node <<'EOF'
+          const { execSync } = require('node:child_process');
+          const fs = require('node:fs');
+          const before = JSON.parse(execSync('git show HEAD:package.json', { encoding: 'utf8' }));
+          const after = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+          const same = (a, b) => JSON.stringify(a ?? {}) === JSON.stringify(b ?? {});
+          const prodKeys = ['dependencies', 'optionalDependencies', 'peerDependencies'];
+          const prodChanged = prodKeys.some((k) => !same(before[k], after[k]));
+          const devChanged = !same(before.devDependencies, after.devDependencies);
+          console.log(JSON.stringify({ prodChanged, devChanged }));
+          EOF
+          )"
+          echo "classify=${CLASSIFY}"
+          PROD="$(node -p "JSON.parse(process.argv[1]).prodChanged" "${CLASSIFY}")"
+          DEV="$(node -p "JSON.parse(process.argv[1]).devChanged" "${CLASSIFY}")"
+
+          if [ "${PROD}" = "true" ]; then
+            echo "release=true" >> "$GITHUB_OUTPUT"
+            echo "Production dependency ranges changed — will patch-release."
           else
-            echo "changed=true" >> "$GITHUB_OUTPUT"
-            git diff -- package.json
+            echo "release=false" >> "$GITHUB_OUTPUT"
+            echo "Only non-production ranges changed (devDependencies=${DEV}) — commit without release."
           fi
 
       - name: Sync lockfile to package.json
@@ -95,7 +127,7 @@ jobs:
 
       # pnpm version requires a clean tree; lockfile is already dirty from pnpm update.
       - name: Bump patch version
-        if: steps.changes.outputs.changed == 'true'
+        if: steps.changes.outputs.release == 'true'
         id: version
         run: |
           set -euo pipefail
@@ -108,8 +140,8 @@ jobs:
           echo "version=${NEW_VERSION}" >> "$GITHUB_OUTPUT"
           echo "Bumped to ${NEW_VERSION}"
 
-      - name: Commit dependency bump
-        if: steps.changes.outputs.changed == 'true'
+      - name: Commit and push (production deps)
+        if: steps.changes.outputs.release == 'true'
         run: |
           set -euo pipefail
           git config user.name "github-actions[bot]"
@@ -118,8 +150,18 @@ jobs:
           git commit -m "chore(deps): nightly in-major dependency update (${{ steps.version.outputs.version }})"
           git push origin HEAD:dev
 
+      - name: Commit and push (devDependencies only)
+        if: steps.changes.outputs.changed == 'true' && steps.changes.outputs.release != 'true'
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json pnpm-lock.yaml
+          git commit -m "chore(deps): nightly in-major dependency update (devDependencies only)"
+          git push origin HEAD:dev
+
       - name: Create GitHub Release
-        if: steps.changes.outputs.changed == 'true'
+        if: steps.changes.outputs.release == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VERSION: ${{ steps.version.outputs.version }}
@@ -133,22 +175,22 @@ jobs:
           gh release create "$TAG" --target dev --title "$TAG" --notes "Nightly in-major dependency update (${TAG})."
 
       - name: Set up QEMU
-        if: steps.changes.outputs.changed == 'true'
+        if: steps.changes.outputs.release == 'true'
         uses: docker/setup-qemu-action@v4
 
       - name: Set up Docker Buildx
-        if: steps.changes.outputs.changed == 'true'
+        if: steps.changes.outputs.release == 'true'
         uses: docker/setup-buildx-action@v4
 
       - name: Resolve image name
         id: image
-        if: steps.changes.outputs.changed == 'true'
+        if: steps.changes.outputs.release == 'true'
         run: |
           set -euo pipefail
           echo "name=ghcr.io/$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_OUTPUT"
 
       - name: Login to GHCR
-        if: steps.changes.outputs.changed == 'true'
+        if: steps.changes.outputs.release == 'true'
         uses: docker/login-action@v4
         with:
           registry: ghcr.io
@@ -156,7 +198,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push image
-        if: steps.changes.outputs.changed == 'true'
+        if: steps.changes.outputs.release == 'true'
         uses: docker/build-push-action@v7
         with:
           context: .
