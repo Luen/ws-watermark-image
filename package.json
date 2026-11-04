@@ -1,6 +1,6 @@
 {
   "name": "ws-watermark-image",
-  "version": "1.0.25",
+  "version": "1.0.26",
   "description": "Wanderstories Image Watermarker",
   "main": "index.js",
   "scripts": {
@@ -14,7 +14,7 @@
     "compression": "^1.8.2",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",
-    "csrf-csrf": "^4.0.3",
+    "csrf-csrf": "^4.1.0",
     "express": "^5.3.0",
     "express-rate-limit": "^8.7.2",
     "express-session": "^1.19.0",
