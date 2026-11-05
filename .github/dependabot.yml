@@ -9,3 +9,10 @@ updates:
     directory: "/"
     schedule:
       interval: "monthly"
+
+  # Monthly checks for Docker base images
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    target-branch: "dev"
