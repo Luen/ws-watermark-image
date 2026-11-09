@@ -243,7 +243,11 @@ app.get('/content/images/{*imagePath}', async (req, res, next) => {
         } catch (err) {
             // Handle file writing error
             console.error('Error writing file:', resolvedImagePath, err)
-            return res.status(500).send('Internal Server Error')
+            // Never turn a cache-write failure (e.g. a bind-mounted volume
+            // owned by another user) into a 500: serve the processed image
+            // from memory instead. Caching is lost, but the request succeeds.
+            res.set('Content-Type', 'image/jpeg')
+            return res.send(outputBuffer)
         }
 
         return res.sendFile(resolvedImagePath)
