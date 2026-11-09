@@ -61,6 +61,14 @@ test('serves requests without an Origin header', async () => {
     assert.equal(response.headers.get('access-control-allow-origin'), null)
 })
 
+test('reports the running version on the root page', async () => {
+    const response = await get('/')
+
+    assert.equal(response.status, 200)
+    const body = await response.text()
+    assert.equal(body, `Wanderstories Image Watermarker v${require('../package.json').version}`)
+})
+
 test('sets CORS headers for allowlisted origins', async () => {
     const response = await get('/', { Origin: allowedOrigin })
 
