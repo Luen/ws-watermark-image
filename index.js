@@ -64,11 +64,12 @@ const corsOptions = {
         // Allow requests with no origin (like mobile apps or curl requests)
         if (!origin) return callback(null, true)
 
-        if (allowedOrigins.includes(origin)) {
-            callback(null, true)
-        } else {
-            callback(new Error('Not allowed by CORS'))
-        }
+        // Never reject a request because of its Origin. CORS is enforced by the
+        // browser, not the server: for an unknown origin we simply omit the
+        // Access-Control-Allow-* headers and still serve the response. Throwing
+        // here made every request from an unlisted origin fail with a 500,
+        // including plain <img> loads that do not need CORS at all.
+        callback(null, allowedOrigins.includes(origin))
     },
     credentials: true,
     optionsSuccessStatus: 204,
