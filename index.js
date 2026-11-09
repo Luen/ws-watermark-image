@@ -8,6 +8,7 @@ const helmet = require('helmet')
 const fs = require('fs')
 const path = require('path')
 const sharp = require('sharp')
+const { version } = require('./package.json')
 
 const port = process.env.PORT || 8080
 
@@ -88,7 +89,7 @@ app.get('/', async (req, res, next) => {
     res.writeHead(200, {
         'Content-Type': 'text/plain',
     })
-    res.end('Wanderstories Image Watermarker')
+    res.end(`Wanderstories Image Watermarker v${version}`)
 })
 
 app.get('/favicon.ico', async (req, res, next) => {
@@ -133,12 +134,22 @@ app.get('/content/images/{*imagePath}', async (req, res, next) => {
         }
 
         try {
-            // await fs.promises.access(imagePath, fs.constants.F_OK);
-            await fs.promises.access(resolvedImagePath)
+            // Only serve the cached file if it is readable; otherwise fall
+            // through and regenerate it. A cached file that exists but is not
+            // readable (e.g. owned by another user from an older container)
+            // would otherwise make sendFile fail with a 500.
+            await fs.promises.access(resolvedImagePath, fs.constants.R_OK)
             return res.sendFile(resolvedImagePath)
         } catch (err) {
-            // File doesn't exist (this is expected), continue processing
-            // console.error("File does not exist, proceeding with processing: ", err);
+            if (err.code !== 'ENOENT') {
+                console.error(
+                    'Cached image not readable, regenerating:',
+                    resolvedImagePath,
+                    err
+                )
+            }
+            // File doesn't exist or isn't readable (expected in most cases),
+            // continue processing
         }
 
         // Split the path by slashes
@@ -158,12 +169,16 @@ app.get('/content/images/{*imagePath}', async (req, res, next) => {
         try {
             const imageResponse = await fetch(originalImageUrl.href)
             if (!imageResponse.ok) {
-                console.error('Failed to fetch image')
+                console.error(
+                    'Failed to fetch image:',
+                    originalImageUrl.href,
+                    imageResponse.status
+                )
                 throw new Error('Failed to fetch image')
             }
             imageBuffer = await imageResponse.arrayBuffer()
         } catch (err) {
-            //console.error(err);
+            console.error('Failed to fetch image, redirecting:', err)
             return res.redirect(originalImageUrl.href)
         }
 
@@ -227,13 +242,13 @@ app.get('/content/images/{*imagePath}', async (req, res, next) => {
             await fs.promises.writeFile(resolvedImagePath, outputBuffer)
         } catch (err) {
             // Handle file writing error
-            // console.error("Error writing file: ", err);
+            console.error('Error writing file:', resolvedImagePath, err)
             return res.status(500).send('Internal Server Error')
         }
 
         return res.sendFile(resolvedImagePath)
     } catch (err) {
-        //console.error(err);
+        console.error('Error processing image:', err)
         return res.status(500).send('Internal Server Error')
     }
 })
