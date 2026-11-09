@@ -73,6 +73,8 @@ ESLint is a devDependency but the repo has no `eslint.config.*`, so `pnpm exec e
 
 - Sanitize input; keep Helmet / CSRF / rate-limit behavior intact.
 - CORS is enforced by the browser, not the server. Never reject a request because of its `Origin`; omit `Access-Control-Allow-*` headers instead.
+- The app caches processed images on disk under `content/`. If a write fails (e.g. a bind-mounted volume owned by another user), the app still serves the processed image from memory, so a cache problem never becomes a 500.
+- Deployment: the bind-mounted `content/` directory must be writable by uid 1000 (the container's `node` user). On a fresh host run `mkdir -p content && sudo chown 1000:1000 content`; if Docker created it as root, fix with `sudo chown -R 1000:1000 content`.
 - Never commit secrets or uploaded images.
 
 

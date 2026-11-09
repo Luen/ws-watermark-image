@@ -122,3 +122,53 @@ test('serves images to allowlisted origins with CORS headers', async () => {
         allowedOrigin
     )
 })
+
+// Regression: a cache directory that is not writable (e.g. a bind-mounted
+// volume owned by another user) must not turn the request into a 500. The
+// processed image is served from memory instead.
+test('serves the processed image from memory when the cache dir is not writable', async (t) => {
+    const realRelPath = 'size/w2000/2026/11/crystal-creek-lower-waterfall.jpg'
+    const realAbsDir = path.join(
+        __dirname,
+        '..',
+        'content',
+        'images',
+        'size',
+        'w2000',
+        '2026',
+        '11'
+    )
+
+    let networkOk = false
+    try {
+        const probe = await fetch(
+            'https://wanderstories.space/content/images/size/w2000/2026/11/crystal-creek-lower-waterfall.jpg'
+        )
+        networkOk = probe.ok
+    } catch {}
+    if (!networkOk) {
+        t.skip('origin image not reachable')
+        return
+    }
+
+    await fs.promises.mkdir(realAbsDir, { recursive: true })
+    const cachedFile = path.join(realAbsDir, 'crystal-creek-lower-waterfall.jpg')
+    await fs.promises.rm(cachedFile, { force: true })
+
+    const originalMode = (await fs.promises.stat(realAbsDir)).mode & 0o777
+    await fs.promises.chmod(realAbsDir, 0o555)
+    try {
+        const response = await get(`/content/images/${realRelPath}`, {
+            Origin: foreignOrigin,
+        })
+        assert.equal(response.status, 200)
+        assert.match(response.headers.get('content-type') ?? '', /^image\/jpeg/)
+    } finally {
+        await fs.promises.chmod(realAbsDir, originalMode || 0o755)
+        await fs.promises.rm(cachedFile, { force: true })
+        await fs.promises.rm(
+            path.join(__dirname, '..', 'content', 'images', 'size'),
+            { recursive: true, force: true }
+        )
+    }
+})
