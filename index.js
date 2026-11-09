@@ -238,9 +238,13 @@ app.get('/content/images/{*imagePath}', async (req, res, next) => {
     }
 })
 
-app.listen(port, (error) => {
-    if (error) {
-        throw error
-    }
-    console.log(`Listening on http://localhost:${port}`)
-})
+if (require.main === module) {
+    app.listen(port, (error) => {
+        if (error) {
+            throw error
+        }
+        console.log(`Listening on http://localhost:${port}`)
+    })
+}
+
+module.exports = app
