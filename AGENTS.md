@@ -15,6 +15,7 @@ Treat this file as **living documentation**. Update it in the same PR when the s
 
 - Open feature/fix PRs against **`dev`**.
 - **Release from [`main`](https://github.com/Luen/ws-watermark-image/tree/main):** sync `main` with `dev`, then do the version bump, tag, and GitHub Release from `main` (see `.github/workflows/release-publish.yml`).
+- **Publish the image manually:** GitHub only fires release events for the default branch (`dev`), so a release created on `main` does not auto-build. After creating the release, run `gh workflow run release-publish.yml --ref dev -f tag=vX.Y.Z` (or use Actions → "Run workflow") to publish the image, then wait for it to finish.
 - **Backmerge after every release:** merge `main` back into `dev` so both branches stay up to date.
 - At the time of writing, `main` was **11 commits behind `dev`** (GitHub shows "This branch is 11 commits behind dev"). Check before releasing with `git rev-list --count origin/main..origin/dev` and sync `main` first.
 - Do not use `master` (rename to `main` if any remnant remains).
