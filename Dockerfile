@@ -9,7 +9,7 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 
-COPY package.json pnpm-lock.yaml ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml* ./
 RUN npm install -g pnpm@12.8.1 \
   && pnpm install --frozen-lockfile --prod \
   && (pnpm store prune || true)
