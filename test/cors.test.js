@@ -25,7 +25,9 @@ let server
 let baseUrl
 
 function get(pathname, headers = {}) {
-    return fetch(`${baseUrl}${pathname}`, { headers })
+    return fetch(`${baseUrl}${pathname}`, {
+        headers: { connection: 'close', ...headers },
+    })
 }
 
 before(async () => {
@@ -142,7 +144,8 @@ test('serves the processed image from memory when the cache dir is not writable'
     let networkOk = false
     try {
         const probe = await fetch(
-            'https://wanderstories.space/content/images/size/w2000/2026/11/crystal-creek-lower-waterfall.jpg'
+            'https://wanderstories.space/content/images/size/w2000/2026/11/crystal-creek-lower-waterfall.jpg',
+            { headers: { connection: 'close' } }
         )
         networkOk = probe.ok
     } catch {}

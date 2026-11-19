@@ -16,6 +16,43 @@ const accepted = ['jpg', 'jpeg', 'png']
 const logoPath = path.join(__dirname, 'Wanderstories-logo.png')
 const imagesRoot = path.resolve(__dirname, 'content', 'images')
 
+const DEFAULT_ALLOWED_SIZES = [
+    // Standard Ghost responsive widths (Casper, Source, and contentImageSizes):
+    'w30',
+    'w100',
+    'w160',
+    'w300',
+    'w320',
+    'w600',
+    'w960',
+    'w1000',
+    'w1200',
+    'w1600',
+    'w2000',
+    'w2400',
+    // Standard Ghost publication icon and avatar dimensions:
+    'w60h60',
+    'w100h100',
+    'w256h256',
+]
+
+function getAllowedSizes() {
+    const raw =
+        process.env.ALLOWED_IMAGE_SIZES || process.env.ALLOWED_IMAGE_WIDTHS
+    const list = raw ? raw.split(',') : DEFAULT_ALLOWED_SIZES
+    const set = new Set()
+    for (const item of list) {
+        const trimmed = String(item).trim().toLowerCase()
+        if (!trimmed) continue
+        if (/^\d+$/.test(trimmed)) {
+            set.add(`w${trimmed}`)
+        } else if (/^w\d+(?:h\d+)?$/.test(trimmed)) {
+            set.add(trimmed)
+        }
+    }
+    return set
+}
+
 const app = express()
 app.set('trust proxy', 1) // trust first proxy
 
@@ -122,6 +159,25 @@ app.get('/content/images/{*imagePath}', async (req, res, next) => {
             return res.status(400).send('Invalid request')
         }
 
+        // If the path requests a resized variant (/content/images/size/<size>/<targetPath>),
+        // validate the requested size against Ghost's standard image dimensions.
+        // Ghost returns a 302 redirect to the unresized original image for unconfigured
+        // or arbitrary widths; matching this behavior prevents storage exhaustion attacks.
+        const sizeMatch = relativePath.match(/^size\/([^/]+)\/(.+)$/)
+        if (sizeMatch) {
+            const sizeSegment = sizeMatch[1].toLowerCase()
+            const targetPath = sizeMatch[2]
+            const allowedSizes = getAllowedSizes()
+
+            if (!allowedSizes.has(sizeSegment)) {
+                const encodedTarget = targetPath
+                    .split('/')
+                    .map((segment) => encodeURIComponent(segment))
+                    .join('/')
+                return res.redirect(302, `/content/images/${encodedTarget}`)
+            }
+        }
+
         const imagePath = path.join(
             __dirname,
             'content',
@@ -167,7 +223,27 @@ app.get('/content/images/{*imagePath}', async (req, res, next) => {
 
         let imageBuffer
         try {
-            const imageResponse = await fetch(originalImageUrl.href)
+            const imageResponse = await fetch(originalImageUrl.href, {
+                redirect: 'manual',
+            })
+            if (imageResponse.status >= 300 && imageResponse.status < 400) {
+                const location = imageResponse.headers.get('location')
+                if (location) {
+                    let redirectTarget = location
+                    try {
+                        const parsedLocation = new URL(
+                            location,
+                            originalImageUrl.origin
+                        )
+                        if (parsedLocation.origin === originalImageUrl.origin) {
+                            redirectTarget = `${parsedLocation.pathname}${parsedLocation.search}`
+                        }
+                    } catch {
+                        // Keep raw location string if URL parsing fails
+                    }
+                    return res.redirect(imageResponse.status, redirectTarget)
+                }
+            }
             if (!imageResponse.ok) {
                 console.error(
                     'Failed to fetch image:',
@@ -185,8 +261,8 @@ app.get('/content/images/{*imagePath}', async (req, res, next) => {
         const imageMetadata = await sharp(imageBuffer).metadata()
 
         // Check if image exceeds maximum dimensions
-        // Note that Ghost only reduces the width to 2000px
-        if (imageMetadata.width > 2000 || imageMetadata.height > 4000) {
+        // Ghost caps responsive image widths at 2400px and heights at 4000px
+        if (imageMetadata.width > 2400 || imageMetadata.height > 4000) {
             return res.status(413).send('Image too large')
         }
 
@@ -265,5 +341,8 @@ if (require.main === module) {
         console.log(`Listening on http://localhost:${port}`)
     })
 }
+
+app.getAllowedSizes = getAllowedSizes
+app.DEFAULT_ALLOWED_SIZES = DEFAULT_ALLOWED_SIZES
 
 module.exports = app
