@@ -1,6 +1,6 @@
 # Build and push the GHCR image for a published GitHub Release.
 #
-# Release events run from the DEFAULT branch (`dev`), so keep this file there.
+# Release events run from the DEFAULT branch (`main`), so keep this file there.
 # The build itself always checks out the release tag.
 
 name: Publish release image

@@ -8,17 +8,15 @@ Treat this file as **living documentation**. Update it in the same PR when the s
 
 ## Branch model
 
+This repository uses **trunk-based development**:
+
 | Branch | Role |
 | --- | --- |
-| `dev` | Default branch for features, fixes, and integration |
-| `main` | Production/release branch |
+| `main` | Default branch for features, fixes, and production releases |
 
-- Open feature/fix PRs against **`dev`**.
-- **Release from [`main`](https://github.com/Luen/ws-watermark-image/tree/main):** sync `main` with `dev`, then do the version bump, tag, and GitHub Release from `main` (see `.github/workflows/release-publish.yml`).
-- **Publish the image manually:** GitHub only fires release events for the default branch (`dev`), so a release created on `main` does not auto-build. After creating the release, run `gh workflow run release-publish.yml --ref dev -f tag=vX.Y.Z` (or use Actions → "Run workflow") to publish the image, then wait for it to finish.
-- **Backmerge after every release:** merge `main` back into `dev` so both branches stay up to date.
-- At the time of writing, `main` was **11 commits behind `dev`** (GitHub shows "This branch is 11 commits behind dev"). Check before releasing with `git rev-list --count origin/main..origin/dev` and sync `main` first.
-- Do not use `master` (rename to `main` if any remnant remains).
+- Open feature and fix PRs directly against **`main`**.
+- Releases, tags, and Docker images are published from `main`.
+- Do not use `dev` or `master`.
 
 ## Package manager
 
@@ -31,13 +29,12 @@ This repo uses **pnpm** (`packageManager` in `package.json`).
 
 ## Dependency and deploy notes
 
-### Tier B - Docker services (nightly on dev)
+### Tier B - Docker services (nightly on main)
 
-- Nightly GitHub Action (`.github/workflows/nightly-minor-deps-release.yml`) runs on **`dev`**:
+- Nightly GitHub Action (`.github/workflows/nightly-minor-deps-release.yml`) runs on **`main`**:
   1. npm-check-updates `--target semver` with `--cooldown 3` (raises package.json in-major ranges; lockfile re-resolved after)
   2. lint/test when scripts exist
   3. if package.json ranges changed: lint/test; **release only when a production dependency moved** (`dependencies` / `optionalDependencies` / `peerDependencies`) — patch bump, commit, GitHub Release, image. `devDependencies`-only updates commit without releasing
-- The nightly action still commits and releases on **`dev`**. Afterwards, sync `main` from `dev` (and backmerge) so `main` remains the release branch and does not fall behind.
 - Image tags: `ghcr.io/<owner>/<repo>:latest`, `:v<version>`, `:<sha>` (repository name lowercased).
 - Servers should pull/recreate from GHCR (e.g. Watchtower or cron).
 - Publishing uses the workflow's `GITHUB_TOKEN` (`packages: write`); no extra registry secrets are required.

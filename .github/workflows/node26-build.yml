@@ -2,7 +2,7 @@ name: Node 26 build
 
 on:
   pull_request:
-    branches: [dev, main]
+    branches: [main]
 
 permissions:
   contents: read
