@@ -3,7 +3,7 @@
 # Express + sharp image watermarker. Sharp ships glibc prebuilds — no system
 # libvips/build toolchain needed on bookworm-slim (unlike Alpine/musl).
 
-FROM node:26.13.0-bookworm-slim@sha256:bc0a2afd3b74ce12222fc8bab99271e66257f021078f5f4a5d687a77d280c1d9
+FROM node:26.13.1-bookworm-slim@sha256:5df79989ed685e09f0a98019db4cebfb22fb9df1a53c0161664a011f7ff6b0f1
 
 WORKDIR /app
 
