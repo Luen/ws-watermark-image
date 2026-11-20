@@ -3,7 +3,11 @@
 # Release only when a production dependency range moved
 # (`dependencies` / `optionalDependencies` / `peerDependencies`).
 # A `devDependencies`-only update is still committed after lint/test,
-# but does not bump, tag, GitHub Release, or publish an image.
+# but does not bump or tag.
+#
+# The GitHub Release created here fires `.github/workflows/release-publish.yml`
+# (main is the default branch), which builds and pushes the GHCR image. This
+# workflow intentionally does not build images, so tags are never pushed twice.
 #
 # Raises package.json ranges to the newest in-major release via npm-check-updates
 # (`--target semver`). Versions published in the last COOLDOWN_DAYS days are
@@ -29,14 +33,12 @@ env:
   COOLDOWN_DAYS: 3
 
 permissions:
-  packages: write
   contents: write
-  pull-requests: write
 
 jobs:
-  update-release-docker:
+  update-release:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 20
     steps:
       - name: Checkout main
         uses: actions/checkout@v7
@@ -173,44 +175,3 @@ jobs:
             exit 0
           fi
           gh release create "$TAG" --target main --title "$TAG" --notes "Nightly in-major dependency update (${TAG})."
-
-      - name: Set up QEMU
-        if: steps.changes.outputs.release == 'true'
-        uses: docker/setup-qemu-action@v4
-
-      - name: Set up Docker Buildx
-        if: steps.changes.outputs.release == 'true'
-        uses: docker/setup-buildx-action@v4
-
-      - name: Resolve image name
-        id: image
-        if: steps.changes.outputs.release == 'true'
-        run: |
-          set -euo pipefail
-          echo "name=ghcr.io/$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_OUTPUT"
-
-      - name: Login to GHCR
-        if: steps.changes.outputs.release == 'true'
-        uses: docker/login-action@v4
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build and push image
-        if: steps.changes.outputs.release == 'true'
-        uses: docker/build-push-action@v7
-        with:
-          context: .
-          platforms: linux/amd64,linux/arm64
-          push: true
-          tags: |
-            ${{ steps.image.outputs.name }}:latest
-            ${{ steps.image.outputs.name }}:v${{ steps.version.outputs.version }}
-            ${{ steps.image.outputs.name }}:${{ github.sha }}
-          labels: |
-            org.opencontainers.image.source=https://github.com/${{ github.repository }}
-            org.opencontainers.image.revision=${{ github.sha }}
-            org.opencontainers.image.version=${{ steps.version.outputs.version }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
