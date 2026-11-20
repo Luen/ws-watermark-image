@@ -1,0 +1,5 @@
+overrides:
+  minimatch: '>=11.0.1'
+  body-parser: '>=2.4.0'
+  qs: '>=6.16.2'
+  ip-address: '>=10.7.4'
