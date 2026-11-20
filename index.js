@@ -15,6 +15,8 @@ const port = process.env.PORT || 8080
 const accepted = ['jpg', 'jpeg', 'png']
 const logoPath = path.join(__dirname, 'Wanderstories-logo.png')
 const imagesRoot = path.resolve(__dirname, 'content', 'images')
+const imageCacheControl =
+    process.env.IMAGE_CACHE_CONTROL || 'public, max-age=31536000, immutable'
 
 const app = express()
 app.set('trust proxy', 1) // trust first proxy
@@ -93,6 +95,7 @@ app.get('/', async (req, res, next) => {
 })
 
 app.get('/favicon.ico', async (req, res, next) => {
+    res.set('Cache-Control', 'public, max-age=86400')
     res.sendFile(path.join(__dirname, 'favicon.ico'))
 })
 
@@ -139,6 +142,7 @@ app.get('/content/images/{*imagePath}', async (req, res, next) => {
             // readable (e.g. owned by another user from an older container)
             // would otherwise make sendFile fail with a 500.
             await fs.promises.access(resolvedImagePath, fs.constants.R_OK)
+            res.set('Cache-Control', imageCacheControl)
             return res.sendFile(resolvedImagePath)
         } catch (err) {
             if (err.code !== 'ENOENT') {
@@ -247,9 +251,11 @@ app.get('/content/images/{*imagePath}', async (req, res, next) => {
             // owned by another user) into a 500: serve the processed image
             // from memory instead. Caching is lost, but the request succeeds.
             res.set('Content-Type', 'image/jpeg')
+            res.set('Cache-Control', imageCacheControl)
             return res.send(outputBuffer)
         }
 
+        res.set('Cache-Control', imageCacheControl)
         return res.sendFile(resolvedImagePath)
     } catch (err) {
         console.error('Error processing image:', err)
