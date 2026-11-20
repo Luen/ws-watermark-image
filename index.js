@@ -55,8 +55,46 @@ function getAllowedSizes() {
     return set
 }
 
+function parseTrustProxy(value) {
+    if (value === undefined || value === null || value === '') return 1
+    if (value === 'false' || value === '0') return false
+    if (value === 'true') return true
+    const parsedNum = Number(value)
+    if (!Number.isNaN(parsedNum)) return parsedNum
+    return value
+}
+
+const maxConcurrentImageJobs =
+    parseInt(process.env.MAX_CONCURRENT_IMAGE_JOBS || '8', 10) || 8
+let activeImageJobs = 0
+const imageJobQueue = []
+
+function runWithImageConcurrencyLimit(fn) {
+    return new Promise((resolve, reject) => {
+        const execute = async () => {
+            activeImageJobs++
+            try {
+                resolve(await fn())
+            } catch (err) {
+                reject(err)
+            } finally {
+                activeImageJobs--
+                if (imageJobQueue.length > 0) {
+                    const next = imageJobQueue.shift()
+                    next()
+                }
+            }
+        }
+        if (activeImageJobs < maxConcurrentImageJobs) {
+            execute()
+        } else {
+            imageJobQueue.push(execute)
+        }
+    })
+}
+
 const app = express()
-app.set('trust proxy', 1) // trust first proxy
+app.set('trust proxy', parseTrustProxy(process.env.TRUST_PROXY))
 
 // Use necessary middleware
 app.use(express.urlencoded({ extended: false }))
@@ -116,11 +154,16 @@ const corsOptions = {
 }
 app.use(cors(corsOptions))
 // Enable CORS for all routes
+const rateLimitWindowMs =
+    parseInt(process.env.RATE_LIMIT_WINDOW_MS || '', 10) || 15 * 60 * 1000
+const rateLimitMax = parseInt(process.env.RATE_LIMIT_MAX || '', 10) || 800
+
 const limiter = rateLimit({
-    windowMs: 15 * 60 * 1000,
-    limit: 800,
+    windowMs: rateLimitWindowMs,
+    limit: rateLimitMax,
     standardHeaders: true,
     legacyHeaders: false,
+    validate: { trustProxy: false },
 })
 app.use(limiter)
 
@@ -270,50 +313,51 @@ app.get('/content/images/{*imagePath}', async (req, res, next) => {
             return res.status(413).send('Image too large')
         }
 
-        const logoMetadata = await sharp(logoPath).metadata()
-        let compositeLogoBuffer
+        const outputBuffer = await runWithImageConcurrencyLimit(async () => {
+            const logoMetadata = await sharp(logoPath).metadata()
+            let compositeLogoBuffer
 
-        // Validate that the logo resizing operation is successful before compositing
-        if (
-            logoMetadata.width > imageMetadata.width ||
-            logoMetadata.height > imageMetadata.height
-        ) {
-            // console.log('Logo dimensions are larger than base image');
-            // Resize the logo to fit within the base image
-            compositeLogoBuffer = await sharp(logoPath)
-                .resize({
-                    width: imageMetadata.width,
-                    height: imageMetadata.height,
-                    fit: 'inside', // Preserve aspect ratio
-                })
+            // Validate that the logo resizing operation is successful before compositing
+            if (
+                logoMetadata.width > imageMetadata.width ||
+                logoMetadata.height > imageMetadata.height
+            ) {
+                // Resize the logo to fit within the base image
+                compositeLogoBuffer = await sharp(logoPath)
+                    .resize({
+                        width: imageMetadata.width,
+                        height: imageMetadata.height,
+                        fit: 'inside', // Preserve aspect ratio
+                    })
+                    .toBuffer()
+            } else {
+                // If the logo is already smaller than the base image, use it as is
+                compositeLogoBuffer = await sharp(logoPath).toBuffer()
+            }
+
+            // Resize the logo to 1/5 of the base image width for compositing
+            const resizedLogoBuffer = await sharp(compositeLogoBuffer)
+                .resize({ width: Math.round(imageMetadata.width / 5) })
                 .toBuffer()
-        } else {
-            // If the logo is already smaller than the base image, use it as is
-            compositeLogoBuffer = await sharp(logoPath).toBuffer()
-        }
 
-        // Resize the logo to 1/5 of the base image width for compositing
-        const resizedLogoBuffer = await sharp(compositeLogoBuffer)
-            .resize({ width: Math.round(imageMetadata.width / 5) })
-            .toBuffer()
-
-        // Composite the resized logo onto the base image
-        const outputBuffer = await sharp(imageBuffer)
-            .composite([
-                {
-                    input: resizedLogoBuffer,
-                    gravity: 'center',
-                    blend: 'overlay',
-                },
-                {
-                    input: resizedLogoBuffer,
-                    gravity: 'center',
-                    blend: 'dest-over',
-                    opacity: 0.1,
-                },
-            ])
-            .jpeg({ quality: 60 })
-            .toBuffer()
+            // Composite the resized logo onto the base image
+            return sharp(imageBuffer)
+                .composite([
+                    {
+                        input: resizedLogoBuffer,
+                        gravity: 'center',
+                        blend: 'overlay',
+                    },
+                    {
+                        input: resizedLogoBuffer,
+                        gravity: 'center',
+                        blend: 'dest-over',
+                        opacity: 0.1,
+                    },
+                ])
+                .jpeg({ quality: 60 })
+                .toBuffer()
+        })
 
         // Safely create directory and write file
         const directoryPath = path.dirname(imagePath)
@@ -348,6 +392,7 @@ if (require.main === module) {
     })
 }
 
+app.parseTrustProxy = parseTrustProxy
 app.getAllowedSizes = getAllowedSizes
 app.DEFAULT_ALLOWED_SIZES = DEFAULT_ALLOWED_SIZES
 
