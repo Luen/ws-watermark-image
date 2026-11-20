@@ -25,6 +25,7 @@ This repo uses **pnpm** (`packageManager` in `package.json`).
 - Install: `pnpm install` (do not use npm/yarn for installs in this repo).
 - Scripts: `pnpm run <script>` / `pnpm exec <bin>`.
 - Lockfile: `pnpm-lock.yaml` only — do not commit `package-lock.json` or `yarn.lock`.
+- Dependency overrides (for audit fixes) live in `pnpm-workspace.yaml`; the Dockerfile copies that file before the frozen-lockfile install.
 - Local disk: pnpm's content-addressable store shares package contents across checkouts on the same machine.
 
 ## Dependency and deploy notes
@@ -34,7 +35,8 @@ This repo uses **pnpm** (`packageManager` in `package.json`).
 - Nightly GitHub Action (`.github/workflows/nightly-minor-deps-release.yml`) runs on **`main`**:
   1. npm-check-updates `--target semver` with `--cooldown 3` (raises package.json in-major ranges; lockfile re-resolved after)
   2. lint/test when scripts exist
-  3. if package.json ranges changed: lint/test; **release only when a production dependency moved** (`dependencies` / `optionalDependencies` / `peerDependencies`) — patch bump, commit, GitHub Release, image. `devDependencies`-only updates commit without releasing
+  3. if package.json ranges changed: lint/test; **release only when a production dependency moved** (`dependencies` / `optionalDependencies` / `peerDependencies`) — patch bump, commit, GitHub Release. `devDependencies`-only updates commit without releasing
+- `main` is the default branch, so a published GitHub Release fires `.github/workflows/release-publish.yml`, which builds and pushes the image. The nightly workflow does not build images itself; do not add a second build there or the same tags get pushed twice.
 - Image tags: `ghcr.io/<owner>/<repo>:latest`, `:v<version>`, `:<sha>` (repository name lowercased).
 - Servers should pull/recreate from GHCR (e.g. Watchtower or cron).
 - Publishing uses the workflow's `GITHUB_TOKEN` (`packages: write`); no extra registry secrets are required.
@@ -51,20 +53,21 @@ Wanderstories image watermark proxy: Express 5 + sharp. Image routes use a named
 ```bash
 pnpm install
 pnpm test
-npm start
+pnpm start
 pnpm run dev
+pnpm run lint
 ```
 
 ## Testing
 
 - `pnpm test` runs the built-in `node:test` suite in `test/` — no extra test framework or test dependencies.
 - Tests start the exported app on an ephemeral port and make real HTTP requests, so the full middleware stack (Helmet, CSRF, CORS, rate limiting) and route handlers are exercised.
-- The suite creates its image fixture under `content/images/__test__` and deletes it afterwards. `content/` is gitignored — never commit fixtures or uploaded images.
+- Tests create their fixtures under `content/images/` (for example `__test__/`, `__cache_test__/`, and `size/w2000/__test__/`) and delete them afterwards. `content/` is gitignored — never commit fixtures or uploaded images.
 - **Every bug fix needs a regression test** that fails without the fix.
 - Do not throw from middleware for request metadata you dislike (for example an unknown CORS `Origin`). Omit headers or return a 4xx, and cover the behaviour with a test. Throwing turns the response into an opaque 500.
-- CI (`.github/workflows/node26-build.yml`) runs `pnpm test` on every PR to `dev`/`main`; the nightly workflow also runs `pnpm test` when the script exists.
+- CI (`.github/workflows/node26-build.yml`) runs `pnpm test` on every PR to `main`; the nightly workflow also runs `pnpm test` and `pnpm run lint`.
 
-ESLint is a devDependency but the repo has no `eslint.config.*`, so `pnpm exec eslint .` currently fails. Use `node --check <file>` for syntax checks until a config is added.
+`pnpm run lint` uses the flat config in `eslint.config.js` (ESLint 10). Fix lint errors rather than disabling rules.
 
 ## Conventions
 
